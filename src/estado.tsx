@@ -18,7 +18,8 @@ interface App {
   aviso: string | null
   avisar(msg: string): void
   fornecedor(id: string): Fornecedor | undefined
-  enviarNota(n: NovaNota, arquivo: File | null): Promise<void>
+  /** Envia a nota e devolve o id criado. */
+  enviarNota(n: NovaNota, arquivo: File | null): Promise<string>
   atualizarNota(id: string, campos: Partial<Nota>): Promise<void>
   avancarEtapa(id: string): Promise<void>
   salvarFornecedor(f: Fornecedor): Promise<void>
@@ -85,8 +86,9 @@ export function ProvedorApp({ children }: { children: ReactNode }) {
       avisar: setAviso,
       fornecedor: (id) => dados?.fornecedores.find((f) => f.id === id),
       async enviarNota(n, arquivo) {
-        await armazenamento.enviarNota(n, arquivo, quem)
+        const nota = await armazenamento.enviarNota(n, arquivo, quem)
         await recarregar()
+        return nota.id
       },
       async atualizarNota(id, campos) {
         await armazenamento.atualizarNota(id, campos, quem)

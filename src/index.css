@@ -54,7 +54,6 @@ main { padding-block: 20px 48px; }
 h2 { font-family: var(--f-display); font-size: 17px; font-weight: 600; margin: 0; text-wrap: balance; }
 .h-small { font-size: 15px; margin: 4px 0 10px; }
 .sub { color: var(--fg-2); font-size: 13px; margin: 2px 0 0; }
-.grid-2 { display: grid; grid-template-columns: minmax(0, 380px) minmax(0, 1fr); gap: 20px; align-items: start; }
 .panel { background: var(--surface); border: 1px solid var(--line); border-radius: var(--r); padding: 18px; min-width: 0; }
 .panel.compact { padding: 14px; }
 .panel > header { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; margin-bottom: 14px; flex-wrap: wrap; }
@@ -159,6 +158,47 @@ svg text { font-family: var(--f-body); }
 .toast { position: fixed; left: 50%; transform: translateX(-50%); bottom: 20px; background: var(--fg); color: var(--bg); padding: 10px 16px; border-radius: 6px; font-weight: 600; z-index: 30; font-size: 13px; }
 .foot { margin-top: 28px; font-size: 12px; color: var(--fg-2); display: flex; gap: 12px; flex-wrap: wrap; align-items: center; }
 
-@media (max-width: 860px) { .grid-2, .charts { grid-template-columns: minmax(0, 1fr); } }
+@media (max-width: 860px) { .charts { grid-template-columns: minmax(0, 1fr); } }
 @media (max-width: 480px) { .row2 { grid-template-columns: 1fr; } .roles button { padding: 7px 10px; } .toolbar input { max-width: none; } }
 @media (prefers-reduced-motion: no-preference) { .hbar .fl { transition: width .4s ease; } }
+
+/* ---------- Sala VIP: formulário em destaque ---------- */
+.vip { display: grid; grid-template-columns: minmax(0, 3fr) minmax(0, 2fr); gap: 24px; align-items: start; }
+.envio { padding: 28px; border-color: var(--ink); box-shadow: 0 6px 24px rgba(15, 58, 74, .08); }
+.envio h2 { font-size: 22px; }
+.envio .sub { font-size: 14px; }
+.envio form.nf { gap: 16px; }
+.envio label { font-size: 12.5px; }
+.envio input { font-size: 15px; padding: 11px 12px; }
+.btn.grande { font-size: 15px; padding: 13px 18px; margin-top: 4px; }
+
+.arquivo { position: relative; display: grid; place-items: center; gap: 4px; text-align: center; text-transform: none; letter-spacing: 0;
+  padding: 26px 16px; border: 2px dashed var(--line); border-radius: var(--r); background: var(--bg); cursor: pointer; transition: border-color .15s, background .15s; }
+.arquivo input { position: absolute; inset: 0; opacity: 0; cursor: pointer; }
+.arquivo:hover, .arquivo.sobre, .arquivo:focus-within { border-color: var(--accent); background: var(--accent-soft); }
+.arquivo.com-arquivo { border-style: solid; border-color: var(--good); background: var(--good-soft); }
+.arquivo-titulo { font-size: 15px; font-weight: 600; color: var(--fg); overflow-wrap: anywhere; }
+.arquivo-dica { font-size: 12.5px; font-weight: 400; color: var(--fg-2); }
+
+/* Confirmação de envio: círculo e check se desenham, texto sobe. */
+.enviada { display: grid; justify-items: center; gap: 8px; text-align: center; padding: 40px 16px; }
+.enviada-titulo { font-family: var(--f-display); font-size: 22px; font-weight: 700; margin: 6px 0 0; color: var(--good); }
+.enviada-check { width: 72px; height: 72px; }
+.enviada-check circle { fill: var(--good-soft); stroke: var(--good); stroke-width: 2.5; }
+.enviada-check path { fill: none; stroke: var(--good); stroke-width: 4; stroke-linecap: round; stroke-linejoin: round; }
+.list .it.nova { background: var(--good-soft); border-radius: 6px; padding-inline: 8px; }
+
+@media (prefers-reduced-motion: no-preference) {
+  .enviada-check circle { stroke-dasharray: 151; stroke-dashoffset: 151; animation: desenhar .5s ease-out forwards; }
+  .enviada-check path { stroke-dasharray: 40; stroke-dashoffset: 40; animation: desenhar .35s .45s ease-out forwards; }
+  .enviada-check { animation: pulo .4s .75s ease-out; }
+  .enviada > :not(svg) { animation: subir .4s .35s ease-out backwards; }
+  .list .it.nova { animation: chegar .6s ease-out, apagar 1.2s 3s ease-in forwards; }
+}
+@keyframes desenhar { to { stroke-dashoffset: 0; } }
+@keyframes pulo { 50% { transform: scale(1.12); } }
+@keyframes subir { from { opacity: 0; transform: translateY(8px); } }
+@keyframes chegar { from { opacity: 0; transform: translateY(-10px); } }
+@keyframes apagar { to { background: transparent; } }
+
+@media (max-width: 860px) { .vip { grid-template-columns: minmax(0, 1fr); } .envio { padding: 20px; } }
