@@ -74,8 +74,8 @@ export function DetalheNota({ nota, fechar }: { nota: Nota; fechar(): void }) {
 
   async function abrirArquivo() {
     const url = await armazenamento.urlDoArquivo(nota.id)
-    if (url) window.open(url, '_blank', 'noopener')
-    else avisar('Arquivo não encontrado neste navegador')
+    if (!url) avisar('Arquivo não encontrado neste navegador')
+    else if (!window.open(url, '_blank')) avisar('O navegador bloqueou a abertura do arquivo')
   }
 
   return (
