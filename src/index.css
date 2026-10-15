@@ -164,7 +164,7 @@ svg text { font-family: var(--f-body); }
 
 /* ---------- Sala VIP: formulário em destaque ---------- */
 .vip { display: grid; grid-template-columns: minmax(0, 3fr) minmax(0, 2fr); gap: 24px; align-items: start; }
-.envio { padding: 28px; border-color: var(--ink); box-shadow: 0 6px 24px rgba(15, 58, 74, .08); }
+.envio { padding: 28px; box-shadow: 0 4px 18px rgba(15, 58, 74, .06); }
 .envio h2 { font-size: 22px; }
 .envio .sub { font-size: 14px; }
 .envio form.nf { gap: 16px; }
