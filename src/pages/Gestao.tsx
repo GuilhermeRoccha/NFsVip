@@ -1,9 +1,13 @@
+import { useState } from 'react'
 import { consumoDoContrato, LIMITE_ALERTA_CONTRATO, situacaoDoSaldo, type SituacaoSaldo } from '../domain/contratos'
 import { ETAPAS, estaAberta, etapaAtual, recebidaEm } from '../domain/etapas'
 import { DIA_MS, inicioDoDia } from '../domain/regras'
 import type { Nota } from '../domain/tipos'
 import { brl, compacto, MESES } from '../lib/formato'
 import { useApp } from '../estado'
+
+/** Quantos contratos aparecem antes de "Ver todos"; os mais consumidos vêm primeiro. */
+const CONTRATOS_VISIVEIS = 5
 
 const soma = (l: Nota[]) => l.reduce((s, n) => s + n.valor, 0)
 
@@ -91,6 +95,7 @@ function GraficoMensal({ notas, agora }: { notas: Nota[]; agora: Date }) {
 
 export function Gestao() {
   const { dados, agora, fornecedor } = useApp()
+  const [todosContratos, setTodosContratos] = useState(false)
   if (!dados) return null
   const { notas, contratos } = dados
 
@@ -199,31 +204,18 @@ export function Gestao() {
             <div>
               <h2>Saldo dos contratos básicos</h2>
               <p className="sub">
-                Valor já consumido sobre o valor do contrato. Em amarelo, {Math.round(LIMITE_ALERTA_CONTRATO * 100)}% ou mais
-                usado; em vermelho, estourado.
+                Amarelo: {Math.round(LIMITE_ALERTA_CONTRATO * 100)}% ou mais usado. Vermelho: estourado.
               </p>
             </div>
+            {emAlerta.length > 0 && (
+              <span className="pill s-alerta" role="status">
+                {emAlerta.length} em alerta
+              </span>
+            )}
           </header>
-          {emAlerta.length > 0 && (
-            <div className="alerta-contratos" role="alert">
-              <b>
-                {emAlerta.length === 1 ? '1 contrato' : `${emAlerta.length} contratos`} com{' '}
-                {Math.round(LIMITE_ALERTA_CONTRATO * 100)}% ou mais do saldo usado
-              </b>
-              <ul>
-                {emAlerta.map(({ c, usado, situacao }) => (
-                  <li key={c.id}>
-                    <span className="mono">CB {c.numero}</span> · {fornecedor(c.fornecedorId)?.nome ?? '—'} ·{' '}
-                    <b className={situacao}>{Math.floor((usado / c.valor) * 100)}%</b>
-                    {situacao === 'estourado' ? ` (estourou ${compacto(usado - c.valor)})` : ` (resta ${compacto(c.valor - usado)})`}
-                  </li>
-                ))}
-              </ul>
-            </div>
-          )}
           <BarrasHorizontais
             maximo={1}
-            barras={saldo.map(({ c, usado, situacao }) => {
+            barras={(todosContratos ? saldo : saldo.slice(0, CONTRATOS_VISIVEIS)).map(({ c, usado, situacao }) => {
               const p = usado / c.valor
               return {
                 nome: fornecedor(c.fornecedorId)?.nome ?? '—',
@@ -234,6 +226,11 @@ export function Gestao() {
               }
             })}
           />
+          {saldo.length > CONTRATOS_VISIVEIS && (
+            <button className="link mt8" type="button" onClick={() => setTodosContratos(!todosContratos)}>
+              {todosContratos ? 'Mostrar menos' : `Ver todos os ${saldo.length} contratos`}
+            </button>
+          )}
         </div>
       </div>
     </>

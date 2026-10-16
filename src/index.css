@@ -164,10 +164,8 @@ svg text { font-family: var(--f-body); }
 .hbar .fl { display: block; height: 100%; background: var(--bar); border-radius: 3px; }
 .hbar .fl.estourado { background: var(--crit); }
 .hbar .fl.alerta { background: var(--warn); }
-.hbar .vl.estourado, .alerta-contratos .estourado { color: var(--crit); font-weight: 600; }
-.hbar .vl.alerta, .alerta-contratos .alerta { color: var(--warn); font-weight: 600; }
-.alerta-contratos { background: var(--warn-soft); border-left: 3px solid var(--warn); border-radius: 6px; padding: 10px 14px; margin-bottom: 14px; font-size: 13px; }
-.alerta-contratos ul { margin: 6px 0 0; padding-left: 18px; display: grid; gap: 3px; }
+.hbar .vl.estourado { color: var(--crit); font-weight: 600; }
+.hbar .vl.alerta { color: var(--warn); font-weight: 600; }
 .saldo-alerta { color: var(--warn); font-weight: 600; }
 .s-alerta { background: var(--warn-soft); color: var(--warn); }
 .pill + .pill { margin-left: 6px; }
