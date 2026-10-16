@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { BotaoAjuda } from './components/Ajuda'
 import { BotaoTema } from './components/BotaoTema'
 import { FaixaJanela } from './components/FaixaJanela'
 import { MODO_DEMONSTRACAO } from './data'
@@ -35,7 +36,10 @@ export default function App() {
               </button>
             ))}
           </nav>
-          <BotaoTema />
+          <div className="icones">
+            <BotaoAjuda />
+            <BotaoTema />
+          </div>
         </div>
         {perfil === 'comercial' && (
           <div className="wrap subnav">
