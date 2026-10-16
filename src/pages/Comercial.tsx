@@ -2,12 +2,12 @@ import { useMemo, useState } from 'react'
 import { DetalheNota } from '../components/DetalheNota'
 import { StatusNota, TempoParada } from '../components/Status'
 import { estaAberta, etapaAtual, nomeEtapa, recebidaEm } from '../domain/etapas'
-import { estaVencida, inicioDoDia, precisaEntrarNaJanela } from '../domain/regras'
+import { DIAS_DE_ANTECEDENCIA, diasAteJanela, ehUrgente, estaVencida, inicioDoDia, janelaDaNota } from '../domain/regras'
 import type { Nota } from '../domain/tipos'
 import { brl, compacto, data, dataCurta, hora, MESES } from '../lib/formato'
 import { useApp } from '../estado'
 
-type Filtro = 'abertas' | 'hoje' | 'janela' | 'pendencia' | 'vencidas' | 'todas'
+type Filtro = 'abertas' | 'urgentes' | 'hoje' | 'pendencia' | 'vencidas' | 'todas'
 
 export function Comercial() {
   const { dados, janela, agora, fornecedor, avisar } = useApp()
@@ -19,8 +19,8 @@ export function Comercial() {
   const filtros = useMemo(
     (): [Filtro, string, (n: Nota) => boolean][] => [
       ['abertas', 'Em aberto', estaAberta],
+      ['urgentes', 'Urgentes', (n) => ehUrgente(n, janela)],
       ['hoje', 'Recebidas hoje', (n) => inicioDoDia(recebidaEm(n)) >= janela.hoje],
-      ['janela', 'Precisa entrar na janela', (n) => precisaEntrarNaJanela(n, janela)],
       ['pendencia', 'Com pendência', (n) => !!n.pendencia],
       ['vencidas', 'Vencidas', (n) => estaVencida(n, janela)],
       ['todas', 'Todas', () => true],
@@ -42,20 +42,21 @@ export function Comercial() {
         (!mes || recebidaEm(n).startsWith(mes)) &&
         (!q || [nomeF(n), n.numero, n.oc, n.folha, n.chamado, n.contrato].join(' ').toLowerCase().includes(q)),
     )
+    // Ordem de prioridade: abertas pela janela de pagamento mais próxima, depois pelo vencimento.
     .sort((a, b) =>
       estaAberta(a) && estaAberta(b)
-        ? a.vencimento.localeCompare(b.vencimento)
+        ? +janelaDaNota(a, janela) - +janelaDaNota(b, janela) || a.vencimento.localeCompare(b.vencimento)
         : recebidaEm(b).localeCompare(recebidaEm(a)),
     )
 
   const soma = (l: Nota[]) => l.reduce((s, n) => s + n.valor, 0)
-  const hoje = notas.filter(filtros[1][2])
+  const hoje = notas.filter(filtros[2][2])
   const emAberto = notas.filter(estaAberta)
-  const naJanela = notas.filter(filtros[2][2])
+  const urgentes = notas.filter(filtros[1][2])
   const vencidas = notas.filter(filtros[4][2])
 
   function copiarParaExcel() {
-    const cab = ['Recebida', 'Fornecedor', 'NF', 'Emissão', 'Vencimento', 'Valor', 'Status', 'CB/RC', 'Centro de custo', 'OC', 'MIGO/Folha', 'Chamado']
+    const cab = ['Recebida', 'Fornecedor', 'NF', 'Emissão', 'Vencimento', 'Janela de pagamento', 'Urgente', 'Valor', 'Status', 'CB/RC', 'Centro de custo', 'OC', 'MIGO/Folha', 'Chamado']
     const corpo = linhas.map((n) =>
       [
         data(recebidaEm(n)),
@@ -63,6 +64,8 @@ export function Comercial() {
         n.numero,
         data(n.emissao),
         data(n.vencimento),
+        estaAberta(n) ? data(janelaDaNota(n, janela)) : '',
+        ehUrgente(n, janela) ? 'Sim' : '',
         n.valor.toLocaleString('pt-BR', { minimumFractionDigits: 2 }),
         n.pendencia ? 'Pendência' : nomeEtapa(etapaAtual(n).etapa),
         n.contrato,
@@ -95,10 +98,10 @@ export function Comercial() {
           <span className="v">{emAberto.length}</span>
           <span className="d">{compacto(soma(emAberto))} a pagar</span>
         </div>
-        <div className={`tile ${naJanela.length ? 'attn' : ''}`}>
-          <span className="k">Precisa entrar na janela de {dataCurta(janela.proximoPagamento)}</span>
-          <span className="v">{naJanela.length}</span>
-          <span className="d">vencem antes de {dataCurta(janela.pagamentoSeguinte)} e ainda sem chamado</span>
+        <div className={`tile ${urgentes.length ? 'attn' : ''}`}>
+          <span className="k">Urgentes</span>
+          <span className="v">{urgentes.length}</span>
+          <span className="d">sem chamado e a menos de {DIAS_DE_ANTECEDENCIA} dias da janela de pagamento</span>
         </div>
         <div className={`tile ${vencidas.length ? 'alert' : ''}`}>
           <span className="k">Vencidas sem pagamento</span>
@@ -142,6 +145,7 @@ export function Comercial() {
                 <th>NF</th>
                 <th className="num">Valor</th>
                 <th>Vencimento</th>
+                <th>Janela</th>
                 <th>Status</th>
                 <th>Parada há</th>
                 <th>CB / RC</th>
@@ -154,7 +158,7 @@ export function Comercial() {
             <tbody>
               {linhas.length === 0 && (
                 <tr>
-                  <td colSpan={12} className="empty">
+                  <td colSpan={13} className="empty">
                     Nenhuma nota neste filtro.
                   </td>
                 </tr>
@@ -169,11 +173,18 @@ export function Comercial() {
                   <td className="num mono">{brl(n.valor)}</td>
                   <td className="mono">
                     {data(n.vencimento)}
-                    {estaVencida(n, janela) ? (
-                      <span className="flag">VENCIDA</span>
-                    ) : precisaEntrarNaJanela(n, janela) ? (
-                      <span className="flag warn">JANELA</span>
-                    ) : null}
+                    {estaVencida(n, janela) && <span className="flag">VENCIDA</span>}
+                  </td>
+                  <td className="mono">
+                    {estaAberta(n) ? (
+                      <>
+                        {dataCurta(janelaDaNota(n, janela))}{' '}
+                        <span className="muted">{diasAteJanela(n, janela)} d</span>
+                        {ehUrgente(n, janela) && <span className="urg">URGENTE</span>}
+                      </>
+                    ) : (
+                      <span className="muted">—</span>
+                    )}
                   </td>
                   <td>
                     <StatusNota nota={n} />
