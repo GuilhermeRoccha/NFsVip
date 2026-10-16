@@ -38,10 +38,9 @@ header.top > .wrap:first-child { display: flex; flex-wrap: wrap; align-items: ce
 .tag { font-size: 11px; letter-spacing: .06em; text-transform: uppercase; padding: 2px 8px; border-radius: 99px; background: var(--accent-soft); color: var(--warn); font-weight: 600; }
 .roles { display: flex; background: var(--surface-2); border-radius: var(--r); padding: 3px; gap: 2px; }
 .roles button { border: 0; background: transparent; color: var(--fg-2); font: 600 13px var(--f-body); padding: 7px 14px; border-radius: 6px; cursor: pointer; }
-.tema { display: inline-flex; align-items: center; gap: 6px; border: 1px solid var(--line); background: var(--surface); color: var(--fg-2); font: 600 13px var(--f-body); padding: 7px 12px; border-radius: var(--r); cursor: pointer; }
-.tema:hover { color: var(--fg); border-color: var(--fg-2); }
+.tema { display: inline-grid; place-items: center; width: 30px; height: 30px; border: 0; background: none; color: var(--fg-2); border-radius: 50%; cursor: pointer; opacity: .7; }
+.tema:hover { opacity: 1; background: var(--surface-2); color: var(--fg); }
 .tema svg { width: 16px; height: 16px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
-@media (max-width: 480px) { .tema span { display: none; } }
 .roles button[aria-pressed='true'] { background: var(--surface); color: var(--fg); box-shadow: 0 1px 2px rgba(0, 0, 0, .12); }
 .subnav { display: flex; gap: 4px; }
 .subnav button { border: 0; background: none; color: var(--fg-2); font: 600 13px var(--f-body); padding: 8px 12px; cursor: pointer; border-bottom: 2px solid transparent; }
