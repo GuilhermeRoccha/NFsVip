@@ -162,7 +162,15 @@ svg text { font-family: var(--f-body); }
 .hbar .nm { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .hbar .tr { height: 12px; background: var(--surface-2); border-radius: 3px; overflow: hidden; }
 .hbar .fl { display: block; height: 100%; background: var(--bar); border-radius: 3px; }
-.hbar .fl.over { background: var(--crit); }
+.hbar .fl.estourado { background: var(--crit); }
+.hbar .fl.alerta { background: var(--warn); }
+.hbar .vl.estourado, .alerta-contratos .estourado { color: var(--crit); font-weight: 600; }
+.hbar .vl.alerta, .alerta-contratos .alerta { color: var(--warn); font-weight: 600; }
+.alerta-contratos { background: var(--warn-soft); border-left: 3px solid var(--warn); border-radius: 6px; padding: 10px 14px; margin-bottom: 14px; font-size: 13px; }
+.alerta-contratos ul { margin: 6px 0 0; padding-left: 18px; display: grid; gap: 3px; }
+.saldo-alerta { color: var(--warn); font-weight: 600; }
+.s-alerta { background: var(--warn-soft); color: var(--warn); }
+.pill + .pill { margin-left: 6px; }
 .hbar .vl { font-family: var(--f-mono); font-size: 12px; text-align: right; }
 
 .toast { position: fixed; left: 50%; transform: translateX(-50%); bottom: 20px; background: var(--fg); color: var(--bg); padding: 10px 16px; border-radius: 6px; font-weight: 600; z-index: 30; font-size: 13px; }

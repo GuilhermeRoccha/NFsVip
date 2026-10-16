@@ -1,3 +1,4 @@
+import { consumoDoContrato, LIMITE_ALERTA_CONTRATO, situacaoDoSaldo, type SituacaoSaldo } from '../domain/contratos'
 import { ETAPAS, estaAberta, etapaAtual, recebidaEm } from '../domain/etapas'
 import { DIA_MS, inicioDoDia } from '../domain/regras'
 import type { Nota } from '../domain/tipos'
@@ -11,7 +12,8 @@ interface Barra {
   detalhe?: string
   valor: number
   rotulo: string
-  estourou?: boolean
+  /** Só nas barras de contrato: muda a cor para alerta ou estouro. */
+  situacao?: SituacaoSaldo
 }
 
 function BarrasHorizontais({ barras, maximo }: { barras: Barra[]; maximo: number }) {
@@ -23,9 +25,9 @@ function BarrasHorizontais({ barras, maximo }: { barras: Barra[]; maximo: number
             {b.nome} {b.detalhe && <span className="muted">{b.detalhe}</span>}
           </span>
           <span className="tr">
-            <span className={`fl ${b.estourou ? 'over' : ''}`} style={{ width: `${Math.min(1, b.valor / (maximo || 1)) * 100}%` }} />
+            <span className={`fl ${b.situacao ?? ''}`} style={{ width: `${Math.min(1, b.valor / (maximo || 1)) * 100}%` }} />
           </span>
-          <span className={`vl ${b.estourou ? 'crit' : ''}`}>{b.rotulo}</span>
+          <span className={`vl ${b.situacao ?? ''}`}>{b.rotulo}</span>
         </div>
       ))}
     </div>
@@ -118,8 +120,12 @@ export function Gestao() {
 
   const saldo = contratos
     .filter((c) => c.ativo && c.valor > 0)
-    .map((c) => ({ c, usado: soma(notas.filter((n) => n.contrato === c.numero)) }))
+    .map((c) => {
+      const usado = consumoDoContrato(c, notas)
+      return { c, usado, situacao: situacaoDoSaldo(usado, c.valor) }
+    })
     .sort((a, b) => b.usado / b.c.valor - a.usado / a.c.valor)
+  const emAlerta = saldo.filter((x) => x.situacao !== 'ok')
 
   return (
     <>
@@ -192,19 +198,39 @@ export function Gestao() {
           <header>
             <div>
               <h2>Saldo dos contratos básicos</h2>
-              <p className="sub">Valor já consumido sobre o valor do contrato. Em vermelho, contratos estourados.</p>
+              <p className="sub">
+                Valor já consumido sobre o valor do contrato. Em amarelo, {Math.round(LIMITE_ALERTA_CONTRATO * 100)}% ou mais
+                usado; em vermelho, estourado.
+              </p>
             </div>
           </header>
+          {emAlerta.length > 0 && (
+            <div className="alerta-contratos" role="alert">
+              <b>
+                {emAlerta.length === 1 ? '1 contrato' : `${emAlerta.length} contratos`} com{' '}
+                {Math.round(LIMITE_ALERTA_CONTRATO * 100)}% ou mais do saldo usado
+              </b>
+              <ul>
+                {emAlerta.map(({ c, usado, situacao }) => (
+                  <li key={c.id}>
+                    <span className="mono">CB {c.numero}</span> · {fornecedor(c.fornecedorId)?.nome ?? '—'} ·{' '}
+                    <b className={situacao}>{Math.floor((usado / c.valor) * 100)}%</b>
+                    {situacao === 'estourado' ? ` (estourou ${compacto(usado - c.valor)})` : ` (resta ${compacto(c.valor - usado)})`}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
           <BarrasHorizontais
             maximo={1}
-            barras={saldo.map(({ c, usado }) => {
+            barras={saldo.map(({ c, usado, situacao }) => {
               const p = usado / c.valor
               return {
                 nome: fornecedor(c.fornecedorId)?.nome ?? '—',
                 detalhe: `CB ${c.numero}`,
                 valor: p,
-                estourou: p > 1,
-                rotulo: `${Math.round(p * 100)}% · ${p > 1 ? 'estourou ' + compacto(usado - c.valor) : 'resta ' + compacto(c.valor - usado)}`,
+                situacao,
+                rotulo: `${Math.floor(p * 100)}% · ${p > 1 ? 'estourou ' + compacto(usado - c.valor) : 'resta ' + compacto(c.valor - usado)}`,
               }
             })}
           />
