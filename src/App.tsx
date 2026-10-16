@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { BotaoTema } from './components/BotaoTema'
 import { FaixaJanela } from './components/FaixaJanela'
 import { MODO_DEMONSTRACAO } from './data'
 import type { Perfil } from './domain/tipos'
@@ -34,6 +35,7 @@ export default function App() {
               </button>
             ))}
           </nav>
+          <BotaoTema />
         </div>
         {perfil === 'comercial' && (
           <div className="wrap subnav">
