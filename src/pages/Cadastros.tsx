@@ -248,7 +248,7 @@ export function Cadastros() {
       {aba === 'historico' && (
         <div className="panel">
           {dados.auditoria.length === 0 ? (
-            <p className="empty">Nenhuma alteração de cadastro ainda.</p>
+            <p className="empty">Nenhuma alteração de cadastro ou exclusão de nota ainda.</p>
           ) : (
             <ul className="alteracoes">
               {[...dados.auditoria].reverse().map((a, i) => (

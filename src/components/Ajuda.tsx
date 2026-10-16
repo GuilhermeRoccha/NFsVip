@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { AJUDA_ETAPAS, GLOSSARIO, PAPEIS_NO_PORTAL } from '../domain/ajuda'
 import { ETAPAS } from '../domain/etapas'
+import { DIAS_DE_ANTECEDENCIA } from '../domain/regras'
 import { dataCurta } from '../lib/formato'
 import { useApp } from '../estado'
 
@@ -88,6 +89,7 @@ function Ajuda({ fechar }: { fechar(): void }) {
                 <li>Nota com pendência não avança.</li>
                 <li>Cada avanço grava data, hora e quem fez. É daí que vem o tempo de cada etapa.</li>
                 <li>Toda edição de nota, fornecedor ou contrato fica no histórico de alterações.</li>
+                <li>Excluir uma nota pede o motivo e também fica registrado no histórico de alterações.</li>
                 <li>O SAP continua fora do portal: aqui ficam só os números (OC, MIGO/folha, chamado).</li>
               </ul>
             </div>
@@ -102,7 +104,14 @@ function Ajuda({ fechar }: { fechar(): void }) {
                   Pagamentos saem nas quintas do dia 1 ao 21 do mês. Próximo: <b>{dataCurta(janela.proximoPagamento)}</b>,
                   depois <b>{dataCurta(janela.pagamentoSeguinte)}</b>.
                 </li>
-                <li>Uma nota que vence antes do pagamento seguinte precisa ter chamado aberto antes da próxima janela.</li>
+                <li>
+                  A janela de cada nota é a última quinta de pagamento antes do vencimento. O ideal é a nota estar pronta{' '}
+                  {DIAS_DE_ANTECEDENCIA} dias antes dela.
+                </li>
+                <li>
+                  <b>Urgente</b>: ainda sem chamado e a menos de {DIAS_DE_ANTECEDENCIA} dias da janela, ou já sem janela
+                  antes do vencimento. A fila do Comercial vem nessa ordem de prioridade.
+                </li>
               </ul>
               <p className="obs">Regra ainda a confirmar com o Comercial.</p>
             </div>

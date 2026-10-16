@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
-import { ETAPAS, indiceEtapa, etapaAtual, nomeEtapa, proximaEtapa } from '../domain/etapas'
-import { avisoDeCalendario, DIA_MS } from '../domain/regras'
+import { ETAPAS, estaAberta, indiceEtapa, etapaAtual, nomeEtapa, proximaEtapa } from '../domain/etapas'
+import { avisoDeCalendario, DIA_MS, diasAteJanela, ehUrgente, janelaDaNota } from '../domain/regras'
 import type { Nota } from '../domain/tipos'
 import { data, dataCurta, dataHora, dias, lerValor } from '../lib/formato'
 import { armazenamento } from '../data'
@@ -29,10 +29,11 @@ const paraEdicao = (n: Nota): Edicao => ({
 
 /** Painel lateral com os dados da nota, edição, avanço de etapa e histórico. */
 export function DetalheNota({ nota, fechar }: { nota: Nota; fechar(): void }) {
-  const { fornecedor, agora, janela, atualizarNota, avancarEtapa, avisar } = useApp()
+  const { fornecedor, agora, janela, atualizarNota, avancarEtapa, excluirNota, avisar } = useApp()
   const [ed, setEd] = useState<Edicao>(() => paraEdicao(nota))
   const [erro, setErro] = useState('')
   const [motivo, setMotivo] = useState<string | null>(null)
+  const [motivoExclusao, setMotivoExclusao] = useState<string | null>(null)
 
   useEffect(() => {
     const esc = (e: KeyboardEvent) => e.key === 'Escape' && fechar()
@@ -111,6 +112,15 @@ export function DetalheNota({ nota, fechar }: { nota: Nota; fechar(): void }) {
           <dd className="mono">{data(nota.emissao)}</dd>
           <dt>Recebida em</dt>
           <dd className="mono">{dataHora(nota.etapas[0].em)}</dd>
+          {estaAberta(nota) && (
+            <>
+              <dt>Janela de pagamento</dt>
+              <dd className="mono">
+                {data(janelaDaNota(nota, janela))} · faltam {diasAteJanela(nota, janela)} d
+                {ehUrgente(nota, janela) && <span className="urg">URGENTE</span>}
+              </dd>
+            </>
+          )}
           <dt>Arquivo</dt>
           <dd>
             {nota.arquivoNome ? (
@@ -191,14 +201,19 @@ export function DetalheNota({ nota, fechar }: { nota: Nota; fechar(): void }) {
         <div>
           <h2 className="h-small">Histórico</h2>
           <div className="timeline">
+            {/* O histórico começa na emissão da NF pelo fornecedor; só a data é conhecida. */}
+            <div className="emissao">
+              <b>Emitida</b> · {f?.nome ?? 'Fornecedor'}
+              <small>{data(nota.emissao)}</small>
+            </div>
             {nota.etapas.map((e, i) => {
-              const anterior = i ? (new Date(e.em).getTime() - new Date(nota.etapas[i - 1].em).getTime()) / DIA_MS : null
+              const antes = i ? nota.etapas[i - 1].em : nota.emissao
+              const intervalo = Math.max(0, (new Date(e.em).getTime() - new Date(antes).getTime()) / DIA_MS)
               return (
                 <div key={i}>
                   <b>{nomeEtapa(e.etapa)}</b> · {e.por}
                   <small>
-                    {dataHora(e.em)}
-                    {anterior !== null && ` · ${dias(anterior)} após a etapa anterior`}
+                    {dataHora(e.em)} · {dias(intervalo)} após {i ? 'a etapa anterior' : 'a emissão'}
                   </small>
                 </div>
               )
@@ -218,6 +233,42 @@ export function DetalheNota({ nota, fechar }: { nota: Nota; fechar(): void }) {
                 ))}
               </ul>
             </>
+          )}
+        </div>
+        <div className="exclusao">
+          {motivoExclusao === null ? (
+            <button className="btn perigo" type="button" onClick={() => setMotivoExclusao('')}>
+              Excluir nota
+            </button>
+          ) : (
+            <div className="notice err">
+              <b>
+                Excluir a NF {nota.numero} de {f?.nome}?
+              </b>{' '}
+              A nota e o arquivo somem do portal. Isso não pode ser desfeito; fica registrado no histórico de alterações.
+              <label className="mt8">
+                Motivo da exclusão
+                <input
+                  value={motivoExclusao}
+                  placeholder="ex.: enviada em duplicidade"
+                  autoFocus
+                  onChange={(e) => setMotivoExclusao(e.target.value)}
+                />
+              </label>
+              <div className="acoes mt8">
+                <button
+                  className="btn perigo cheio"
+                  type="button"
+                  disabled={!motivoExclusao.trim()}
+                  onClick={() => executar(() => excluirNota(nota.id, motivoExclusao), `NF ${nota.numero} excluída`)}
+                >
+                  Excluir definitivamente
+                </button>
+                <button className="btn ghost" type="button" onClick={() => setMotivoExclusao(null)}>
+                  Cancelar
+                </button>
+              </div>
+            </div>
           )}
         </div>
       </aside>

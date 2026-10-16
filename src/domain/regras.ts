@@ -58,12 +58,39 @@ export function calcularJanela(agora: Date): Janela {
   }
 }
 
-/** Vence antes do pagamento seguinte e ainda não tem chamado: precisa entrar na próxima janela. */
-export function precisaEntrarNaJanela(n: Nota, j: Janela): boolean {
+/** Antecedência ideal: a nota deve estar pronta 15 dias antes da janela de pagamento. */
+export const DIAS_DE_ANTECEDENCIA = 15
+
+/** Último dia de pagamento (quinta do dia 1 ao 21) no dia informado ou antes dele. */
+export function pagamentoNoOuAntes(d: Date): Date {
+  let r = inicioDoDia(d)
+  while (r.getDay() !== QUINTA || r.getDate() > ULTIMO_DIA_DE_PAGAMENTO) r = somarDias(r, -1)
+  return r
+}
+
+/** A nota já não consegue ser paga até o vencimento: a última janela antes dele passou. */
+export const perdeuAJanela = (n: Nota, j: Janela) => pagamentoNoOuAntes(new Date(n.vencimento)) < j.hoje
+
+/**
+ * Janela de pagamento da nota: o último dia de pagamento até o vencimento.
+ * Se esse dia já passou, a nota vai para o próximo pagamento.
+ */
+export function janelaDaNota(n: Nota, j: Janela): Date {
+  return perdeuAJanela(n, j) ? j.proximoPagamento : pagamentoNoOuAntes(new Date(n.vencimento))
+}
+
+/** Dias corridos de hoje até a janela de pagamento da nota. */
+export const diasAteJanela = (n: Nota, j: Janela) => Math.round((+janelaDaNota(n, j) - +j.hoje) / DIA_MS)
+
+/**
+ * Urgente: ainda sem chamado e com menos de 15 dias até a janela de pagamento,
+ * ou já sem janela antes do vencimento.
+ */
+export function ehUrgente(n: Nota, j: Janela): boolean {
   return (
     estaAberta(n) &&
-    new Date(n.vencimento) < j.pagamentoSeguinte &&
-    indiceEtapa(etapaAtual(n).etapa) < indiceEtapa('chamado')
+    indiceEtapa(etapaAtual(n).etapa) < indiceEtapa('chamado') &&
+    (perdeuAJanela(n, j) || diasAteJanela(n, j) < DIAS_DE_ANTECEDENCIA)
   )
 }
 

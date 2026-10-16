@@ -123,6 +123,12 @@ td.num, th.num { text-align: right; }
 .age.c { color: var(--crit); font-weight: 600; }
 .flag { font-size: 11px; font-weight: 700; color: var(--crit); margin-left: 6px; }
 .flag.warn { color: var(--warn); }
+.urg { font-size: 10.5px; font-weight: 700; letter-spacing: .04em; color: var(--crit); background: var(--crit-soft); padding: 1px 7px; border-radius: 99px; margin-left: 6px; font-family: var(--f-body); }
+.timeline .emissao::before { background: var(--surface); border: 2px solid var(--ink); width: 6px; height: 6px; }
+.exclusao { border-top: 1px solid var(--line); padding-top: 14px; }
+.btn.perigo { color: var(--crit); border-color: var(--crit-soft); background: transparent; }
+.btn.perigo:hover { border-color: var(--crit); }
+.btn.perigo.cheio { background: var(--crit); color: #fff; border-color: var(--crit); }
 .empty { padding: 28px; text-align: center; color: var(--fg-2); }
 
 .list .it { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 2px 12px; padding: 10px 0; border-bottom: 1px solid var(--line); }
