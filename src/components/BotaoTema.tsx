@@ -37,7 +37,7 @@ export function BotaoTema() {
   return (
     <button
       type="button"
-      className="tema"
+      className="btn-icone"
       onClick={alternar}
       aria-label={escuro ? 'Mudar para modo claro' : 'Mudar para modo noturno'}
       title={escuro ? 'Mudar para modo claro' : 'Mudar para modo noturno'}
