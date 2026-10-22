@@ -2,7 +2,7 @@ import { proximaEtapa } from '../domain/etapas'
 import { bloqueioParaAvancar } from '../domain/regras'
 import type { Contrato, Fornecedor, Nota } from '../domain/tipos'
 import { ErroDeRegra, type Armazenamento, type Dados } from './armazenamento'
-import { guardarArquivo, lerArquivo, limparArquivos } from './arquivosLocais'
+import { apagarArquivo, guardarArquivo, lerArquivo, limparArquivos } from './arquivosLocais'
 import { gerarExemplo } from './exemplo'
 
 const CHAVE = 'portal-nf-dados-v1'
@@ -105,6 +105,21 @@ export class ArmazenamentoLocal implements Armazenamento {
     n.etapas.push({ etapa: prox.id, em: agoraISO(), por })
     this.gravar()
     return structuredClone(n)
+  }
+
+  async excluirNota(id: string, motivo: string, por: string) {
+    const n = this.nota(id)
+    if (!motivo.trim()) throw new ErroDeRegra('Informe o motivo da exclusão.')
+    const f = this.dados.fornecedores.find((x) => x.id === n.fornecedorId)
+    this.dados.notas = this.dados.notas.filter((x) => x.id !== id)
+    this.dados.auditoria.push({
+      em: agoraISO(),
+      por,
+      entidade: 'nota',
+      descricao: `Excluiu a NF ${n.numero} de ${f?.nome ?? 'fornecedor desconhecido'} (R$ ${n.valor.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}). Motivo: ${motivo.trim()}`,
+    })
+    this.gravar()
+    if (n.arquivoNome) await apagarArquivo(id).catch(() => undefined)
   }
 
   async salvarFornecedor(f: Fornecedor, por: string) {
