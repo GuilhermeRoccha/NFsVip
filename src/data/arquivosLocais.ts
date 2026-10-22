@@ -24,4 +24,5 @@ async function transacao<T>(modo: IDBTransactionMode, fn: (s: IDBObjectStore) =>
 
 export const guardarArquivo = (chave: string, arquivo: Blob) => transacao('readwrite', (s) => s.put(arquivo, chave))
 export const lerArquivo = (chave: string) => transacao<Blob | undefined>('readonly', (s) => s.get(chave))
+export const apagarArquivo = (chave: string) => transacao('readwrite', (s) => s.delete(chave))
 export const limparArquivos = () => transacao('readwrite', (s) => s.clear())

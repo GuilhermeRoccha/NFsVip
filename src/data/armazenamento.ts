@@ -22,6 +22,9 @@ export interface Armazenamento {
   /** Move a nota para a próxima etapa. Valida as regras antes. */
   avancarEtapa(id: string, por: string): Promise<Nota>
 
+  /** Exclui a nota e o arquivo dela. Fica registrado no histórico de alterações com o motivo. */
+  excluirNota(id: string, motivo: string, por: string): Promise<void>
+
   salvarFornecedor(f: Fornecedor, por: string): Promise<Fornecedor>
   salvarContrato(c: Contrato, por: string): Promise<Contrato>
 

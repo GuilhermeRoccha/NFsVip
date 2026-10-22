@@ -63,7 +63,7 @@ export interface Contrato {
 export interface RegistroAuditoria {
   em: string
   por: string
-  entidade: 'fornecedor' | 'contrato'
+  entidade: 'nota' | 'fornecedor' | 'contrato'
   descricao: string
 }
 
