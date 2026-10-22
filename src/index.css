@@ -123,6 +123,12 @@ td.num, th.num { text-align: right; }
 .age.c { color: var(--crit); font-weight: 600; }
 .flag { font-size: 11px; font-weight: 700; color: var(--crit); margin-left: 6px; }
 .flag.warn { color: var(--warn); }
+.urg { font-size: 10.5px; font-weight: 700; letter-spacing: .04em; color: var(--crit); background: var(--crit-soft); padding: 1px 7px; border-radius: 99px; margin-left: 6px; font-family: var(--f-body); }
+.timeline .emissao::before { background: var(--surface); border: 2px solid var(--ink); width: 6px; height: 6px; }
+.exclusao { border-top: 1px solid var(--line); padding-top: 14px; }
+.btn.perigo { color: var(--crit); border-color: var(--crit-soft); background: transparent; }
+.btn.perigo:hover { border-color: var(--crit); }
+.btn.perigo.cheio { background: var(--crit); color: #fff; border-color: var(--crit); }
 .empty { padding: 28px; text-align: center; color: var(--fg-2); }
 
 .list .it { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 2px 12px; padding: 10px 0; border-bottom: 1px solid var(--line); }
@@ -156,7 +162,13 @@ svg text { font-family: var(--f-body); }
 .hbar .nm { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .hbar .tr { height: 12px; background: var(--surface-2); border-radius: 3px; overflow: hidden; }
 .hbar .fl { display: block; height: 100%; background: var(--bar); border-radius: 3px; }
-.hbar .fl.over { background: var(--crit); }
+.hbar .fl.estourado { background: var(--crit); }
+.hbar .fl.alerta { background: var(--warn); }
+.hbar .vl.estourado { color: var(--crit); font-weight: 600; }
+.hbar .vl.alerta { color: var(--warn); font-weight: 600; }
+.saldo-alerta { color: var(--warn); font-weight: 600; }
+.s-alerta { background: var(--warn-soft); color: var(--warn); }
+.pill + .pill { margin-left: 6px; }
 .hbar .vl { font-family: var(--f-mono); font-size: 12px; text-align: right; }
 
 .toast { position: fixed; left: 50%; transform: translateX(-50%); bottom: 20px; background: var(--fg); color: var(--bg); padding: 10px 16px; border-radius: 6px; font-weight: 600; z-index: 30; font-size: 13px; }

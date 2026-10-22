@@ -16,7 +16,7 @@ interface Modelo {
 const MODELOS: Modelo[] = [
   { nome: 'Distribuidora Aurora', base: 42000, contrato: '4600000398', cc: '306.002', tipo: 'Alimentação 1', limite: 1200000 },
   { nome: 'Buffet Ipê', base: 95000, contrato: '4600000403', cc: '306.005', tipo: 'Alimentação 4', limite: 2400000 },
-  { nome: 'Café Planalto', base: 6800, contrato: '4600000414', cc: '306.003', tipo: 'Alimentação 2', limite: 150000 },
+  { nome: 'Café Planalto', base: 6800, contrato: '4600000414', cc: '306.003', tipo: 'Alimentação 2', limite: 140000 },
   { nome: 'Hortifruti Cerrado', base: 9500, contrato: '4600000421', cc: '306.005', tipo: 'Alimentação 4', limite: 120000 },
   { nome: 'Bebidas Norte Sul', base: 28000, contrato: '4600000401', cc: '306.004', tipo: 'Alimentação 3', limite: 800000 },
   { nome: 'Limpeza Brilho', base: 2400, contrato: '4600000410', cc: '306.002', tipo: 'Materiais limpeza', limite: 40000 },

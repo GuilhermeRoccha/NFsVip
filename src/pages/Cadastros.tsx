@@ -1,4 +1,5 @@
 import { useState, type FormEvent } from 'react'
+import { consumoDoContrato, situacaoDoSaldo } from '../domain/contratos'
 import type { Contrato, Fornecedor } from '../domain/tipos'
 import { brl, dataHora, lerValor } from '../lib/formato'
 import { mensagemDeErro, useApp } from '../estado'
@@ -224,23 +225,28 @@ export function Cadastros() {
                 </thead>
                 <tbody>
                   {dados.contratos.map((c) => {
-                    const usado = dados.notas.filter((n) => n.contrato === c.numero).reduce((s, n) => s + n.valor, 0)
+                    const usado = consumoDoContrato(c, dados.notas)
                     const saldo = c.valor - usado
+                    const situacao = situacaoDoSaldo(usado, c.valor)
                     return (
                       <tr key={c.id} onClick={() => setEditContrato(c)}>
                         <td className="mono">{c.numero}</td>
                         <td>{fornecedor(c.fornecedorId)?.nome ?? '—'}</td>
                         <td className="num mono">{brl(c.valor)}</td>
                         <td className="num mono">{brl(usado)}</td>
-                        <td className={`num mono ${saldo < 0 ? 'crit' : ''}`}>{brl(saldo)}</td>
-                        <td>{c.ativo ? <span className="pill s-paga">Ativo</span> : <span className="pill">Encerrado</span>}</td>
+                        <td className={`num mono ${situacao === 'estourado' ? 'crit' : situacao === 'alerta' ? 'saldo-alerta' : ''}`}>{brl(saldo)}</td>
+                        <td>
+                          {c.ativo ? <span className="pill s-paga">Ativo</span> : <span className="pill">Encerrado</span>}
+                          {c.ativo && situacao === 'alerta' && <span className="pill s-alerta">80% usado</span>}
+                          {c.ativo && situacao === 'estourado' && <span className="pill s-pend">Estourado</span>}
+                        </td>
                       </tr>
                     )
                   })}
                 </tbody>
               </table>
             </div>
-            <p className="hint">O consumo soma as NFs que têm este número de contrato. Clique num contrato para editar.</p>
+            <p className="hint">O consumo soma as NFs que têm este número de contrato. Com 80% ou mais usado, o contrato entra em alerta. Clique num contrato para editar.</p>
           </div>
         </>
       )}
@@ -248,7 +254,7 @@ export function Cadastros() {
       {aba === 'historico' && (
         <div className="panel">
           {dados.auditoria.length === 0 ? (
-            <p className="empty">Nenhuma alteração de cadastro ainda.</p>
+            <p className="empty">Nenhuma alteração de cadastro ou exclusão de nota ainda.</p>
           ) : (
             <ul className="alteracoes">
               {[...dados.auditoria].reverse().map((a, i) => (

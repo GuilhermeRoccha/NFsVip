@@ -60,5 +60,6 @@ export const GLOSSARIO: [termo: string, significado: string][] = [
   ['Chamado', 'Pedido aberto para o Fiscal lançar a nota e liberar o pagamento.'],
   ['Contrato básico', 'Contrato com valor total; cada nota consome parte do saldo.'],
   ['Pendência', 'Problema na nota (dado errado, arquivo faltando). Enquanto existir, a nota não avança.'],
-  ['Janela de pagamento', 'Próxima quinta em que há pagamento. A nota precisa ter chamado antes dela.'],
+  ['Janela de pagamento', 'Quinta de pagamento (dia 1 a 21) em que a nota deve ser paga: a última antes do vencimento.'],
+  ['Urgente', 'Nota sem chamado a menos de 15 dias da sua janela de pagamento.'],
 ]

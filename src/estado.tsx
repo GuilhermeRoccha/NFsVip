@@ -22,6 +22,7 @@ interface App {
   enviarNota(n: NovaNota, arquivo: File | null): Promise<string>
   atualizarNota(id: string, campos: Partial<Nota>): Promise<void>
   avancarEtapa(id: string): Promise<void>
+  excluirNota(id: string, motivo: string): Promise<void>
   salvarFornecedor(f: Fornecedor): Promise<void>
   salvarContrato(c: Contrato): Promise<void>
   restaurarExemplo(): Promise<void>
@@ -96,6 +97,10 @@ export function ProvedorApp({ children }: { children: ReactNode }) {
       },
       async avancarEtapa(id) {
         await armazenamento.avancarEtapa(id, quem)
+        await recarregar()
+      },
+      async excluirNota(id, motivo) {
+        await armazenamento.excluirNota(id, motivo, quem)
         await recarregar()
       },
       async salvarFornecedor(f) {
