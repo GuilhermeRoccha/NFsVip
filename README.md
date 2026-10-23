@@ -28,8 +28,10 @@ com indicadores para a gestão.
 
 ## Próximos passos
 
-- Escolher e configurar Supabase (banco, arquivos e login) e Vercel (hospedagem).
+- Criar o projeto no Supabase e publicar na Vercel: passo a passo em [`docs/supabase-e-vercel.md`](docs/supabase-e-vercel.md).
+  O código já está pronto: com as duas variáveis do `.env.example` preenchidas, o portal pede login por e-mail
+  e grava no banco; sem elas, abre no modo demonstração.
+- Tela para o Comercial liberar o acesso de novas pessoas (hoje é feito pelo painel do Supabase).
 - Importar o histórico da planilha de 2026.
-- Login por e-mail corporativo, com perfil por usuário.
 
 Veja `CLAUDE.md` para a arquitetura e as regras do processo.

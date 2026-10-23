@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { BotaoAjuda } from './components/Ajuda'
 import { BotaoTema } from './components/BotaoTema'
 import { FaixaJanela } from './components/FaixaJanela'
-import { MODO_DEMONSTRACAO } from './data'
+import { MODO_DEMONSTRACAO, supabase } from './data'
 import type { Perfil } from './domain/tipos'
 import { useApp } from './estado'
 import { Cadastros } from './pages/Cadastros'
@@ -17,7 +17,7 @@ const PERFIS: [Perfil, string][] = [
 ]
 
 export default function App() {
-  const { dados, perfil, trocarPerfil, aviso, restaurarExemplo, avisar } = useApp()
+  const { dados, perfil, perfisPermitidos, trocarPerfil, usuario, aviso, restaurarExemplo, avisar } = useApp()
   const [telaComercial, setTelaComercial] = useState<'notas' | 'cadastros'>('notas')
 
   return (
@@ -28,17 +28,32 @@ export default function App() {
             <h1>Portal NF · Sala VIP</h1>
             {MODO_DEMONSTRACAO && <span className="tag">Demonstração</span>}
           </div>
-          {/* Sem login por enquanto: o perfil é escolhido aqui. Com login, ele virá do usuário. */}
-          <nav className="roles" aria-label="Perfil">
-            {PERFIS.map(([id, nome]) => (
-              <button key={id} type="button" aria-pressed={perfil === id} onClick={() => trocarPerfil(id)}>
-                {nome}
-              </button>
-            ))}
-          </nav>
+          {/* Na demonstração, qualquer perfil. Com login, o Comercial alterna entre todos e os outros veem só a sua tela. */}
+          {perfisPermitidos.length > 1 && (
+            <nav className="roles" aria-label="Perfil">
+              {PERFIS.filter(([id]) => perfisPermitidos.includes(id)).map(([id, nome]) => (
+                <button key={id} type="button" aria-pressed={perfil === id} onClick={() => trocarPerfil(id)}>
+                  {nome}
+                </button>
+              ))}
+            </nav>
+          )}
           <div className="icones">
             <BotaoAjuda />
             <BotaoTema />
+            {usuario && (
+              <button
+                type="button"
+                className="btn-icone"
+                onClick={() => void supabase?.auth.signOut()}
+                aria-label={`Sair (${usuario.nome})`}
+                title={`Sair (${usuario.nome})`}
+              >
+                <svg viewBox="0 0 24 24" aria-hidden="true">
+                  <path d="M15 4h3a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2h-3M10 17l-5-5 5-5M5 12h11" />
+                </svg>
+              </button>
+            )}
           </div>
         </div>
         {perfil === 'comercial' && (

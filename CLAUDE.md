@@ -21,16 +21,19 @@ Recebida → Conferida → OC emitida → MIGO/Folha → De acordo → Chamado a
 ## Stack
 - React 19 + TypeScript + Vite. CSS puro em `src/index.css` (variáveis de cor, tema escuro automático).
 - Testes: Vitest (`npm test`). Lint: oxlint (`npm run lint`).
-- Hospedagem prevista: Vercel. Banco/arquivos/login previstos: Supabase (ainda não escolhido em definitivo).
+- Hospedagem: Vercel. Banco, arquivos e login: Supabase. Passo a passo em `docs/supabase-e-vercel.md`.
 
 ## Arquitetura
 - `src/domain/`: tipos, etapas e regras de negócio. Sem React, fácil de testar.
 - `src/data/armazenamento.ts`: interface `Armazenamento`, o único caminho das telas até os dados.
   - `armazenamentoLocal.ts`: modo demonstração, guarda no `localStorage` e os arquivos no IndexedDB.
-  - Futuro `armazenamentoSupabase.ts`: mesma interface; trocar em `src/data/index.ts`.
+  - `armazenamentoSupabase.ts`: banco e bucket privado "notas" no Supabase. Usado quando há
+    `VITE_SUPABASE_URL` e `VITE_SUPABASE_PUBLISHABLE_KEY` (`.env.local` ou Vercel); sem elas, modo demonstração.
+  - `comum.ts`: validações e textos de histórico usados pelos dois, para se comportarem igual.
+- `src/components/Entrada.tsx`: login por link no e-mail (só com Supabase); o perfil vem da tabela `perfis`.
 - `src/estado.tsx`: contexto React com os dados carregados, perfil escolhido e ações.
 - `src/pages/`: uma tela por perfil (SalaVip, Comercial, Cadastros, Gestao).
-- `supabase/schema.sql`: rascunho do banco para quando o Supabase entrar.
+- `supabase/schema.sql`: tabelas e permissões (RLS) por perfil. Permissão se garante no banco, não na tela.
 
 ## Convenções
 - Código, nomes e textos de tela em **português**.
