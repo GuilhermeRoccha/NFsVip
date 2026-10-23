@@ -251,3 +251,9 @@ section.ajuda { position: fixed; z-index: 21; inset: 24px; margin: auto; width: 
   .ajuda-corpo { grid-template-columns: 1fr; }
   section.ajuda { inset: 0; width: 100%; max-height: 100dvh; height: auto; border-radius: 0; padding: 18px 16px 24px; }
 }
+
+/* Entrada (login) */
+main.login { min-height: 100dvh; display: grid; place-items: center; padding: 16px; }
+main.login .panel { width: min(400px, 100%); display: grid; gap: 14px; padding: 28px; }
+main.login h1 { font-family: var(--f-display); font-size: 20px; margin: 0; color: var(--ink); }
+.login-form { display: grid; gap: 14px; }

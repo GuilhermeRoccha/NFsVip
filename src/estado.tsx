@@ -8,11 +8,21 @@ import { calcularJanela, type Janela } from './domain/regras'
 import type { Contrato, Fornecedor, Nota, NovaNota, Perfil } from './domain/tipos'
 
 const NOME_DO_PERFIL: Record<Perfil, string> = { vip: 'Sala VIP', comercial: 'Comercial', gestao: 'Gestão' }
+const TODOS_OS_PERFIS: Perfil[] = ['vip', 'comercial', 'gestao']
+
+/** Quem está logado (só fora do modo demonstração). */
+export interface Usuario {
+  nome: string
+  perfil: Perfil
+}
 
 interface App {
   dados: Dados | null
   perfil: Perfil
+  /** Telas que esta pessoa pode abrir. O Comercial vê todas; os outros, só a sua. */
+  perfisPermitidos: Perfil[]
   trocarPerfil(p: Perfil): void
+  usuario: Usuario | null
   agora: Date
   janela: Janela
   aviso: string | null
@@ -49,14 +59,26 @@ export function mensagemDeErro(e: unknown): string {
   return 'Algo deu errado. Tente de novo.'
 }
 
-export function ProvedorApp({ children }: { children: ReactNode }) {
+export function ProvedorApp({ children, usuario = null }: { children: ReactNode; usuario?: Usuario | null }) {
   const [dados, setDados] = useState<Dados | null>(null)
-  const [perfil, setPerfil] = useState<Perfil>(perfilSalvo)
+  const perfisPermitidos = useMemo(
+    () => (!usuario || usuario.perfil === 'comercial' ? TODOS_OS_PERFIS : [usuario.perfil]),
+    [usuario],
+  )
+  const [perfilEscolhido, setPerfil] = useState<Perfil>(() => usuario?.perfil ?? perfilSalvo())
+  const perfil = perfisPermitidos.includes(perfilEscolhido) ? perfilEscolhido : perfisPermitidos[0]
   const [aviso, setAviso] = useState<string | null>(null)
   const [agora] = useState(() => new Date())
   const janela = useMemo(() => calcularJanela(agora), [agora])
 
-  const recarregar = useCallback(async () => setDados(await armazenamento.carregar()), [])
+  const recarregar = useCallback(async () => {
+    try {
+      setDados(await armazenamento.carregar())
+    } catch (e) {
+      console.error(e)
+      setAviso('Não foi possível carregar os dados. Verifique a conexão e recarregue a página.')
+    }
+  }, [])
   useEffect(() => {
     void recarregar()
   }, [recarregar])
@@ -67,12 +89,14 @@ export function ProvedorApp({ children }: { children: ReactNode }) {
     return () => clearTimeout(t)
   }, [aviso])
 
-  const quem = NOME_DO_PERFIL[perfil]
+  const quem = usuario?.nome ?? NOME_DO_PERFIL[perfil]
 
   const valor = useMemo<App>(
     () => ({
       dados,
       perfil,
+      perfisPermitidos,
+      usuario,
       trocarPerfil(p) {
         setPerfil(p)
         try {
@@ -116,7 +140,7 @@ export function ProvedorApp({ children }: { children: ReactNode }) {
         await recarregar()
       },
     }),
-    [dados, perfil, agora, janela, aviso, quem, recarregar],
+    [dados, perfil, perfisPermitidos, usuario, agora, janela, aviso, quem, recarregar],
   )
 
   return <Contexto.Provider value={valor}>{children}</Contexto.Provider>

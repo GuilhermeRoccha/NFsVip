@@ -34,3 +34,9 @@ export function lerValor(s: string): number {
 
 /** Data de <input type="date"> (yyyy-mm-dd) → ISO no início do dia local. */
 export const deInputData = (s: string) => new Date(s + 'T00:00').toISOString()
+
+/** ISO (início do dia local) → yyyy-mm-dd, o formato de <input type="date"> e das colunas date do banco. */
+export function paraInputData(iso: string): string {
+  const d = new Date(iso)
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
+}

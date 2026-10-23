@@ -3,23 +3,13 @@ import { bloqueioParaAvancar } from '../domain/regras'
 import type { Contrato, Fornecedor, Nota } from '../domain/tipos'
 import { ErroDeRegra, type Armazenamento, type Dados } from './armazenamento'
 import { apagarArquivo, guardarArquivo, lerArquivo, limparArquivos } from './arquivosLocais'
+import { descreverAlteracoes, descricaoExclusao, MSG_NF_DUPLICADA, validarContrato, validarFornecedor } from './comum'
 import { gerarExemplo } from './exemplo'
 
 const CHAVE = 'portal-nf-dados-v1'
 
 const novoId = () => crypto.randomUUID()
 const agoraISO = () => new Date().toISOString()
-
-const ROTULOS: Partial<Record<keyof Nota, string>> = {
-  contrato: 'Contrato/RC',
-  centroCusto: 'Centro de custo',
-  oc: 'OC',
-  folha: 'MIGO/Folha',
-  chamado: 'Chamado',
-  valor: 'Valor',
-  vencimento: 'Vencimento',
-  pendencia: 'Pendência',
-}
 
 /** Implementação de demonstração: tudo fica no navegador de quem está usando. */
 export class ArmazenamentoLocal implements Armazenamento {
@@ -61,7 +51,7 @@ export class ArmazenamentoLocal implements Armazenamento {
     const duplicada = this.dados.notas.some(
       (n) => n.fornecedorId === nova.fornecedorId && n.numero.trim() === nova.numero.trim(),
     )
-    if (duplicada) throw new ErroDeRegra('Essa NF já foi enviada para este fornecedor. Confira o número antes de reenviar.')
+    if (duplicada) throw new ErroDeRegra(MSG_NF_DUPLICADA)
     const f = this.dados.fornecedores.find((x) => x.id === nova.fornecedorId)
     const contrato = this.dados.contratos.find((c) => c.fornecedorId === nova.fornecedorId && c.ativo)
     const nota: Nota = {
@@ -85,14 +75,10 @@ export class ArmazenamentoLocal implements Armazenamento {
 
   async atualizarNota(id: string, campos: Partial<Nota>, por: string) {
     const n = this.nota(id)
-    const mudou = (Object.keys(campos) as (keyof Nota)[]).filter((k) => campos[k] !== n[k])
-    if (!mudou.length) return structuredClone(n)
-    for (const k of mudou) {
-      const antes = String(n[k] ?? '') || 'vazio'
-      const depois = String(campos[k] ?? '') || 'vazio'
-      n.alteracoes.push({ em: agoraISO(), por, descricao: `${ROTULOS[k] ?? k}: ${antes} → ${depois}` })
-    }
-    Object.assign(n, campos)
+    const { mudou, descricoes } = descreverAlteracoes(n, campos)
+    if (!descricoes.length) return structuredClone(n)
+    for (const descricao of descricoes) n.alteracoes.push({ em: agoraISO(), por, descricao })
+    Object.assign(n, mudou)
     this.gravar()
     return structuredClone(n)
   }
@@ -116,7 +102,7 @@ export class ArmazenamentoLocal implements Armazenamento {
       em: agoraISO(),
       por,
       entidade: 'nota',
-      descricao: `Excluiu a NF ${n.numero} de ${f?.nome ?? 'fornecedor desconhecido'} (R$ ${n.valor.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}). Motivo: ${motivo.trim()}`,
+      descricao: descricaoExclusao(n, f?.nome ?? 'fornecedor desconhecido', motivo),
     })
     this.gravar()
     if (n.arquivoNome) await apagarArquivo(id).catch(() => undefined)
@@ -124,11 +110,7 @@ export class ArmazenamentoLocal implements Armazenamento {
 
   async salvarFornecedor(f: Fornecedor, por: string) {
     const existente = this.dados.fornecedores.find((x) => x.id === f.id)
-    const nomeRepetido = this.dados.fornecedores.some(
-      (x) => x.id !== f.id && x.nome.trim().toLowerCase() === f.nome.trim().toLowerCase(),
-    )
-    if (!f.nome.trim()) throw new ErroDeRegra('Informe o nome do fornecedor.')
-    if (nomeRepetido) throw new ErroDeRegra('Já existe um fornecedor com esse nome.')
+    validarFornecedor(f, this.dados.fornecedores)
     const salvo = { ...f, id: f.id || novoId() }
     if (existente) Object.assign(existente, salvo)
     else this.dados.fornecedores.push(salvo)
@@ -143,9 +125,7 @@ export class ArmazenamentoLocal implements Armazenamento {
   }
 
   async salvarContrato(c: Contrato, por: string) {
-    if (!c.numero.trim()) throw new ErroDeRegra('Informe o número do contrato.')
-    if (!c.fornecedorId) throw new ErroDeRegra('Escolha o fornecedor do contrato.')
-    if (!(c.valor > 0)) throw new ErroDeRegra('Informe o valor do contrato.')
+    validarContrato(c)
     const existente = this.dados.contratos.find((x) => x.id === c.id)
     const salvo = { ...c, id: c.id || novoId() }
     if (existente) Object.assign(existente, salvo)
