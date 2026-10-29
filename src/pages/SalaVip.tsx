@@ -1,7 +1,8 @@
 import { useEffect, useState, type DragEvent, type FormEvent } from 'react'
 import { StatusNota } from '../components/Status'
-import { recebidaEm } from '../domain/etapas'
-import { brl, dataCurta, dataHora, deInputData, lerValor } from '../lib/formato'
+import { estaAberta, etapaAtual, recebidaEm } from '../domain/etapas'
+import { DIA_MS, previsaoDePagamento } from '../domain/regras'
+import { brl, data, dataCurta, dataHora, deInputData, lerValor } from '../lib/formato'
 import { mensagemDeErro, useApp } from '../estado'
 
 const VAZIO = { arquivo: null as File | null, fornecedor: '', numero: '', valor: '', emissao: '', vencimento: '' }
@@ -16,7 +17,7 @@ interface Enviada {
 }
 
 export function SalaVip() {
-  const { dados, enviarNota, fornecedor } = useApp()
+  const { dados, enviarNota, fornecedor, janela } = useApp()
   const [form, setForm] = useState(VAZIO)
   const [erro, setErro] = useState('')
   const [enviando, setEnviando] = useState(false)
@@ -161,6 +162,7 @@ export function SalaVip() {
                 <input type="date" {...campo('vencimento')} />
               </label>
             </div>
+            <PrevisaoPagamento vencimento={form.vencimento} />
             {erro && <div className="notice err">{erro}</div>}
             <button className="btn primary grande" type="submit" disabled={enviando}>
               {enviando ? 'Enviando…' : 'Enviar nota fiscal'}
@@ -187,10 +189,53 @@ export function SalaVip() {
                 Enviada {dataHora(recebidaEm(n))} · vence {dataCurta(n.vencimento)}
               </span>
               <span className="mono small right">{brl(n.valor)}</span>
+              {/* A informação que a Sala VIP mais procura: quando o fornecedor recebe. */}
+              <span className="pagamento">
+                {estaAberta(n) ? (
+                  <>
+                    Pagamento previsto <b>{diaEData(previsaoDePagamento(n.vencimento, janela))}</b>
+                  </>
+                ) : (
+                  <>
+                    Paga em <b>{diaEData(etapaAtual(n).em)}</b>
+                  </>
+                )}
+              </span>
             </div>
           ))}
         </div>
       </section>
+    </div>
+  )
+}
+
+const DIAS = ['dom', 'seg', 'ter', 'qua', 'qui', 'sex', 'sáb']
+const diaEData = (d: string | Date) => `${DIAS[new Date(d).getDay()]} ${data(d)}`
+
+/** Mostra, assim que o vencimento é preenchido, em que quinta a nota deve ser paga. */
+function PrevisaoPagamento({ vencimento }: { vencimento: string }) {
+  const { janela } = useApp()
+  if (!vencimento) {
+    return (
+      <div className="previsao vazia">
+        <span className="k">Previsão de pagamento</span>
+        <span className="muted">preencha o vencimento</span>
+      </div>
+    )
+  }
+  const venc = deInputData(vencimento)
+  const prev = previsaoDePagamento(venc, janela)
+  const dias = Math.round((+prev - +janela.hoje) / DIA_MS)
+  const depoisDoVencimento = prev > new Date(venc)
+  return (
+    <div className={`previsao ${depoisDoVencimento ? 'atrasada' : ''}`} role="status">
+      <span className="k">Previsão de pagamento</span>
+      <span className="v">{diaEData(prev)}</span>
+      <span className="d">
+        {depoisDoVencimento
+          ? 'Depois do vencimento: a última quinta de pagamento antes dele já passou.'
+          : `${dias === 0 ? 'hoje' : `daqui a ${dias} dia${dias > 1 ? 's' : ''}`} · última quinta de pagamento (dia 1 a 21) antes do vencimento`}
+      </span>
     </div>
   )
 }

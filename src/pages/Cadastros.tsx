@@ -1,5 +1,5 @@
 import { useState, type FormEvent } from 'react'
-import { NOME_DO_PERFIL } from '../domain/acesso'
+import { DESCRICAO_DO_PERFIL, NOME_DO_PERFIL } from '../domain/acesso'
 import { consumoDoContrato, situacaoDoSaldo } from '../domain/contratos'
 import type { Acesso, Contrato, Fornecedor, Perfil } from '../domain/tipos'
 import { brl, dataHora, lerValor } from '../lib/formato'
@@ -123,12 +123,6 @@ function FormContrato({ inicial, fechar }: { inicial: Contrato; fechar(): void }
   )
 }
 
-const DESCRICAO_DO_PERFIL: Record<Perfil, string> = {
-  vip: 'Só envia notas da Sala VIP',
-  comercial: 'Vê e altera tudo, nos dois ambientes',
-  gestao: 'Só os painéis, sem alterar nada',
-}
-
 function FormAcesso({ inicial, fechar }: { inicial: Acesso; fechar(): void }) {
   const { salvarAcesso, avisar, usuario } = useApp()
   const [a, setA] = useState(inicial)
@@ -217,7 +211,7 @@ function Usuarios() {
                     </td>
                     <td className="mono">{a.email}</td>
                     <td>
-                      <span className={`pill ${a.perfil === 'comercial' ? 's-paga' : a.perfil === 'gestao' ? 's-oc' : 's-recebida'}`}>
+                      <span className={`pill ${a.perfil === 'comercial' ? 's-paga' : a.perfil === 'gestao' ? 's-oc' : a.perfil === 'operador' ? 's-acordo' : 's-recebida'}`}>
                         {NOME_DO_PERFIL[a.perfil]}
                       </span>
                     </td>

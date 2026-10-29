@@ -49,7 +49,8 @@ export const PAPEIS_NO_PORTAL: { perfil: string; faz: string }[] = [
     perfil: 'Comercial (admin)',
     faz: 'Dono do processo, vê os dois ambientes. Confere, preenche OC, MIGO/folha e chamado e avança as etapas. Em Notas Comercial, controla as próprias requisições e lança as NFs de cada pedido. Mantém fornecedores, contratos e usuários em Cadastros.',
   },
-  { perfil: 'Gestão', faz: 'Só os painéis dos dois ambientes: valores, prazos, tempo em cada etapa, gargalos e saldos.' },
+  { perfil: 'Notas Comercial', faz: 'Só o ambiente Notas Comercial: requisições, lançamento de NFs, painel e úteis. Não mexe em cadastros nem em usuários.' },
+  { perfil: 'Gestão', faz: 'Só os painéis e os úteis dos dois ambientes: valores, prazos, tempo em cada etapa, gargalos e saldos.' },
 ]
 
 export const GLOSSARIO: [termo: string, significado: string][] = [

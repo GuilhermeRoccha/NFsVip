@@ -7,12 +7,12 @@ import type { EtapaId, Fornecedor, Nota, Requisicao, StatusRequisicao } from '..
 import { aleatorio } from './aleatorio'
 
 const EMPRESAS = [
-  { nome: 'Quadra Arquitetura', cc: 'BSB302.008', tipo: 'Projetos' },
-  { nome: 'Sinaliza Comunicação Visual', cc: 'BSB302.003', tipo: 'Comunicação visual' },
-  { nome: 'Traço Engenharia', cc: 'BSB302.007', tipo: 'Consultoria' },
-  { nome: 'Imagem Viva Fotografia', cc: 'BSB302.006', tipo: 'Fotografia' },
-  { nome: 'Contêiner Planalto', cc: 'BSB302.006', tipo: 'Locação' },
-  { nome: 'ObraFácil Software', cc: 'BSB302.008', tipo: 'Software' },
+  { nome: 'Quadra Arquitetura', cc: '410.04', tipo: 'Projetos' },
+  { nome: 'Sinaliza Comunicação Visual', cc: '410.02', tipo: 'Comunicação visual' },
+  { nome: 'Traço Engenharia', cc: '410.05', tipo: 'Consultoria' },
+  { nome: 'Imagem Viva Fotografia', cc: '410.03', tipo: 'Fotografia' },
+  { nome: 'Contêiner Planalto', cc: '410.03', tipo: 'Locação' },
+  { nome: 'ObraFácil Software', cc: '410.04', tipo: 'Software' },
 ]
 
 // [empresa, projeto, valor, parcelas, status, meses atrás]

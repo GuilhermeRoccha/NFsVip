@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { abasDoPerfil, ambientesDoPerfil } from './acesso'
+import { abasDoPerfil, ambientesDoPerfil, podeEditarUteis } from './acesso'
 import { bloqueioDoStatus, faturamento, proximoStatus, validarRequisicao } from './requisicoes'
 import type { Nota, Requisicao } from './tipos'
 
@@ -74,15 +74,23 @@ describe('requisições', () => {
 })
 
 describe('níveis de acesso', () => {
-  it('Sala VIP só vê o envio de notas da Sala VIP', () => {
+  it('Sala VIP só vê o envio e os úteis da Sala VIP', () => {
     expect(ambientesDoPerfil('vip')).toEqual(['vip'])
-    expect(abasDoPerfil('vip', 'vip').map((a) => a.id)).toEqual(['enviar'])
+    expect(abasDoPerfil('vip', 'vip').map((a) => a.id)).toEqual(['enviar', 'uteis'])
     expect(abasDoPerfil('vip', 'comercial')).toEqual([])
   })
 
-  it('Comercial vê tudo e Gestão só os painéis', () => {
-    expect(abasDoPerfil('comercial', 'comercial').map((a) => a.id)).toEqual(['requisicoes', 'notas', 'painel', 'cadastros'])
-    expect(abasDoPerfil('gestao', 'vip').map((a) => a.id)).toEqual(['painel'])
-    expect(abasDoPerfil('gestao', 'comercial').map((a) => a.id)).toEqual(['painel'])
+  it('operador só vê o Notas Comercial, sem cadastros', () => {
+    expect(ambientesDoPerfil('operador')).toEqual(['comercial'])
+    expect(abasDoPerfil('operador', 'comercial').map((a) => a.id)).toEqual(['requisicoes', 'notas', 'painel', 'uteis'])
+    expect(abasDoPerfil('operador', 'vip')).toEqual([])
+    expect(podeEditarUteis('operador', 'comercial')).toBe(true)
+    expect(podeEditarUteis('operador', 'vip')).toBe(false)
+  })
+
+  it('Comercial vê tudo e Gestão só painéis e úteis', () => {
+    expect(abasDoPerfil('comercial', 'comercial').map((a) => a.id)).toEqual(['requisicoes', 'notas', 'painel', 'uteis', 'cadastros'])
+    expect(abasDoPerfil('gestao', 'vip').map((a) => a.id)).toEqual(['painel', 'uteis'])
+    expect(podeEditarUteis('gestao', 'comercial')).toBe(false)
   })
 })

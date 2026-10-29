@@ -7,10 +7,11 @@ do recebimento ao pagamento. Substitui o fluxo de e-mail + Excel + pasta do Wind
 - **Sala VIP**: só o ambiente Notas Sala VIP. Envia a NF (anexo, fornecedor, nº, emissão, vencimento, valor).
 - **Comercial (admin)**: tudo, nos dois ambientes. Confere, preenche OC, MIGO/folha e chamado, avança etapas,
   mantém os cadastros e libera usuários (Cadastros → Usuários).
-- **Gestão**: só os painéis dos dois ambientes.
+- **Notas Comercial (operador)**: só o ambiente Notas Comercial (requisições, notas, painel, úteis), sem cadastros.
+- **Gestão**: só os painéis e os úteis dos dois ambientes.
 - Login: entra quem está em Usuários, pelo e-mail. Hoje é login de teste, sem senha (modo demonstração).
 
-## Ambientes
+## Ambientes (cada um tem a aba Úteis: centros de custo, códigos, fornecedores, orientações)
 - **Notas Sala VIP**: a Sala VIP envia, o Comercial trata (fluxo abaixo).
 - **Notas Comercial**: compras do próprio Comercial, no lugar da planilha "Controle Requisições de Compra".
   Requisição (`src/domain/requisicoes.ts`): RC aberta → RC aprovada → Pedido gerado → Pedido aprovado →

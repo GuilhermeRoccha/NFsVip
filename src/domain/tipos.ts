@@ -1,8 +1,11 @@
 // Modelo de dados do portal. Estes tipos são o "contrato" entre as telas e o
 // armazenamento (hoje o navegador, amanhã o Supabase). Ver supabase/schema.sql.
 
-/** Nível de acesso. Sala VIP: só envia notas da Sala VIP. Comercial: admin, faz tudo. Gestão: só os painéis. */
-export type Perfil = 'vip' | 'comercial' | 'gestao'
+/**
+ * Nível de acesso. Sala VIP: só o ambiente da Sala VIP. Comercial: admin, faz tudo.
+ * Operador: só o ambiente Notas Comercial, sem cadastros. Gestão: só os painéis.
+ */
+export type Perfil = 'vip' | 'comercial' | 'operador' | 'gestao'
 
 /** Os dois ambientes do portal: notas que a Sala VIP envia e o controle de compras do próprio Comercial. */
 export type Ambiente = 'vip' | 'comercial'
@@ -71,7 +74,7 @@ export interface Contrato {
 export interface RegistroAuditoria {
   em: string
   por: string
-  entidade: 'nota' | 'fornecedor' | 'contrato' | 'requisicao' | 'acesso'
+  entidade: 'nota' | 'fornecedor' | 'contrato' | 'requisicao' | 'acesso' | 'util'
   descricao: string
 }
 
@@ -121,4 +124,17 @@ export interface Acesso {
   email: string
   nome: string
   perfil: Perfil
+}
+
+/** Seções da aba Úteis (a consulta rápida que ficava na aba "Úteis" da planilha). */
+export type SecaoUtil = 'centros' | 'aprovadores' | 'recorrentes' | 'orientacoes' | 'contatos'
+
+/** Uma linha da aba Úteis. Cada seção dá um sentido a título, valor e observação. */
+export interface Util {
+  id: string
+  ambiente: Ambiente
+  secao: SecaoUtil
+  titulo: string
+  valor: string
+  obs: string
 }

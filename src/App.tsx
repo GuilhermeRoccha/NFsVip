@@ -10,6 +10,7 @@ import { Comercial } from './pages/Comercial'
 import { Gestao } from './pages/Gestao'
 import { Requisicoes } from './pages/Requisicoes'
 import { SalaVip } from './pages/SalaVip'
+import { Uteis } from './pages/Uteis'
 
 export default function App() {
   const { dados, perfil, ambiente, trocarAmbiente, aba, trocarAba, usuario, sair, aviso, restaurarExemplo, avisar } =
@@ -80,6 +81,8 @@ export default function App() {
           <Comercial origem="comercial" />
         ) : aba === 'painel' ? (
           <Gestao origem={ambiente} />
+        ) : aba === 'uteis' ? (
+          <Uteis ambiente={ambiente} />
         ) : (
           <Cadastros />
         )}

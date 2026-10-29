@@ -1,7 +1,7 @@
 import { proximaEtapa } from '../domain/etapas'
 import { bloqueioParaAvancar } from '../domain/regras'
 import { aceitaNota, descreverEdicao } from '../domain/requisicoes'
-import type { Acesso, Contrato, Fornecedor, Nota, Requisicao, StatusRequisicao } from '../domain/tipos'
+import type { Acesso, Contrato, Fornecedor, Nota, Requisicao, StatusRequisicao, Util } from '../domain/tipos'
 import { ErroDeRegra, type Armazenamento, type Dados } from './armazenamento'
 import { apagarArquivo, guardarArquivo, lerArquivo, limparArquivos } from './arquivosLocais'
 import {
@@ -12,6 +12,7 @@ import {
   descricaoExclusao,
   descricaoExclusaoRequisicao,
   descricaoRemocaoAcesso,
+  descricaoUtil,
   etapasIniciais,
   MSG_NF_DUPLICADA,
   MSG_REQUISICAO_SEM_PEDIDO,
@@ -19,11 +20,12 @@ import {
   validarContrato,
   validarFornecedor,
   validarReq,
+  validarUtil,
 } from './comum'
 import { gerarExemplo } from './exemplo'
 
-// v2: notas com origem (Sala VIP ou Comercial), requisições e acessos.
-const CHAVE = 'portal-nf-dados-v2'
+// v3: notas com origem (Sala VIP ou Comercial), requisições, acessos e úteis.
+const CHAVE = 'portal-nf-dados-v3'
 
 const novoId = () => crypto.randomUUID()
 const agoraISO = () => new Date().toISOString()
@@ -231,6 +233,23 @@ export class ArmazenamentoLocal implements Armazenamento {
     if (!a) return
     this.dados.acessos = this.dados.acessos.filter((x) => x.email !== email)
     this.dados.auditoria.push({ em: agoraISO(), por, entidade: 'acesso', descricao: descricaoRemocaoAcesso(a) })
+    this.gravar()
+  }
+
+  async salvarUtil(u: Util, por: string) {
+    const limpo = validarUtil(u)
+    const existente = this.dados.uteis.find((x) => x.id === u.id)
+    if (existente) Object.assign(existente, limpo)
+    else this.dados.uteis.push({ ...limpo, id: novoId() })
+    this.dados.auditoria.push({ em: agoraISO(), por, entidade: 'util', descricao: descricaoUtil(limpo, existente ? 'Editou' : 'Adicionou') })
+    this.gravar()
+  }
+
+  async excluirUtil(id: string, por: string) {
+    const u = this.dados.uteis.find((x) => x.id === id)
+    if (!u) return
+    this.dados.uteis = this.dados.uteis.filter((x) => x.id !== id)
+    this.dados.auditoria.push({ em: agoraISO(), por, entidade: 'util', descricao: descricaoUtil(u, 'Excluiu') })
     this.gravar()
   }
 

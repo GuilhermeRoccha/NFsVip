@@ -11,6 +11,7 @@ import type {
   RegistroAuditoria,
   Requisicao,
   StatusRequisicao,
+  Util,
 } from '../domain/tipos'
 
 export interface Dados {
@@ -20,6 +21,8 @@ export interface Dados {
   requisicoes: Requisicao[]
   /** Quem pode entrar. Só o Comercial recebe a lista completa. */
   acessos: Acesso[]
+  /** Linhas da aba Úteis, dos dois ambientes. */
+  uteis: Util[]
   auditoria: RegistroAuditoria[]
 }
 
@@ -53,6 +56,10 @@ export interface Armazenamento {
   salvarAcesso(a: Acesso, por: string): Promise<void>
   /** Tira o acesso de um e-mail. */
   removerAcesso(email: string, por: string): Promise<void>
+
+  /** Cria (id vazio) ou edita uma linha da aba Úteis. */
+  salvarUtil(u: Util, por: string): Promise<void>
+  excluirUtil(id: string, por: string): Promise<void>
 
   /** URL temporária para abrir o arquivo da nota, ou null se não houver. */
   urlDoArquivo(notaId: string): Promise<string | null>

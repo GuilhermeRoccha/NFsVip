@@ -16,6 +16,7 @@ import type {
   Perfil,
   Requisicao,
   StatusRequisicao,
+  Util,
 } from './domain/tipos'
 
 /** Quem está logado. O nível vem do cadastro de Usuários. */
@@ -52,6 +53,8 @@ interface App {
   excluirRequisicao(id: string, motivo: string): Promise<void>
   salvarAcesso(a: Acesso): Promise<void>
   removerAcesso(email: string): Promise<void>
+  salvarUtil(u: Util): Promise<void>
+  excluirUtil(id: string): Promise<void>
   restaurarExemplo(): Promise<void>
 }
 
@@ -172,6 +175,8 @@ export function ProvedorApp({ children }: { children: ReactNode }) {
       sair() {
         gravarSessao('')
         setEmail('')
+        // A próxima pessoa começa na tela inicial do nível dela.
+        mudarTela({ ambiente: undefined, aba: undefined })
       },
       agora,
       janela,
@@ -222,6 +227,14 @@ export function ProvedorApp({ children }: { children: ReactNode }) {
       },
       async removerAcesso(email) {
         await armazenamento.removerAcesso(email, quem)
+        await recarregar()
+      },
+      async salvarUtil(u) {
+        await armazenamento.salvarUtil(u, quem)
+        await recarregar()
+      },
+      async excluirUtil(id) {
+        await armazenamento.excluirUtil(id, quem)
         await recarregar()
       },
       async restaurarExemplo() {

@@ -5,6 +5,7 @@ import type { Contrato, EtapaId, Fornecedor, Nota } from '../domain/tipos'
 import type { Dados } from './armazenamento'
 import { aleatorio } from './aleatorio'
 import { exemploComercial } from './exemploComercial'
+import { exemploUteis } from './exemploUteis'
 
 interface Modelo {
   nome: string
@@ -167,7 +168,9 @@ export function gerarExemplo(agora: Date): Dados {
       { email: 'comercial@exemplo.com', nome: 'Comercial', perfil: 'comercial' },
       { email: 'salavip@exemplo.com', nome: 'Sala VIP', perfil: 'vip' },
       { email: 'gestao@exemplo.com', nome: 'Gestão', perfil: 'gestao' },
+      { email: 'analista@exemplo.com', nome: 'Analista Comercial', perfil: 'operador' },
     ],
+    uteis: exemploUteis(),
     auditoria: [],
   }
 }

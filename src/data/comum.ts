@@ -4,7 +4,7 @@
 import { emailValido, NOME_DO_PERFIL, normalizarEmail } from '../domain/acesso'
 import { ETAPAS } from '../domain/etapas'
 import { bloqueioDoStatus, descreverStatus, notasDaRequisicao, validarRequisicao } from '../domain/requisicoes'
-import type { Acesso, Contrato, EtapaId, Fornecedor, Nota, Requisicao, StatusRequisicao } from '../domain/tipos'
+import type { Acesso, Contrato, EtapaId, Fornecedor, Nota, Requisicao, StatusRequisicao, Util } from '../domain/tipos'
 import { ErroDeRegra } from './armazenamento'
 
 const ROTULOS: Partial<Record<keyof Nota, string>> = {
@@ -95,3 +95,12 @@ export function etapasIniciais(comercial: boolean): EtapaId[] {
 }
 
 export const MSG_REQUISICAO_SEM_PEDIDO = 'Escolha um pedido válido (com nº de pedido e não cancelado).'
+
+export function validarUtil(u: Util): Util {
+  const limpo = { ...u, titulo: u.titulo.trim(), valor: u.valor.trim(), obs: u.obs.trim() }
+  if (!limpo.titulo || !limpo.valor) throw new ErroDeRegra('Preencha os dois primeiros campos.')
+  return limpo
+}
+
+export const descricaoUtil = (u: Util, acao: 'Adicionou' | 'Editou' | 'Excluiu') =>
+  `${acao} em Úteis (${u.ambiente === 'vip' ? 'Notas Sala VIP' : 'Notas Comercial'}): ${u.titulo}`
