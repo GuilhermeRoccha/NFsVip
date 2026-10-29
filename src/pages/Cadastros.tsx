@@ -1,6 +1,7 @@
 import { useState, type FormEvent } from 'react'
+import { NOME_DO_PERFIL } from '../domain/acesso'
 import { consumoDoContrato, situacaoDoSaldo } from '../domain/contratos'
-import type { Contrato, Fornecedor } from '../domain/tipos'
+import type { Acesso, Contrato, Fornecedor, Perfil } from '../domain/tipos'
 import { brl, dataHora, lerValor } from '../lib/formato'
 import { mensagemDeErro, useApp } from '../estado'
 
@@ -122,9 +123,144 @@ function FormContrato({ inicial, fechar }: { inicial: Contrato; fechar(): void }
   )
 }
 
+const DESCRICAO_DO_PERFIL: Record<Perfil, string> = {
+  vip: 'Só envia notas da Sala VIP',
+  comercial: 'Vê e altera tudo, nos dois ambientes',
+  gestao: 'Só os painéis, sem alterar nada',
+}
+
+function FormAcesso({ inicial, fechar }: { inicial: Acesso; fechar(): void }) {
+  const { salvarAcesso, avisar, usuario } = useApp()
+  const [a, setA] = useState(inicial)
+  const [erro, setErro] = useState('')
+  const proprio = !!inicial.email && inicial.email === usuario?.email
+  async function salvar(e: FormEvent) {
+    e.preventDefault()
+    try {
+      await salvarAcesso(a)
+      avisar(inicial.email ? 'Acesso atualizado' : 'Acesso liberado')
+      fechar()
+    } catch (err) {
+      setErro(mensagemDeErro(err))
+    }
+  }
+  return (
+    <form className="panel form-cadastro" onSubmit={salvar}>
+      <h2>{inicial.email ? `Editar ${inicial.nome}` : 'Liberar acesso'}</h2>
+      <div className="row2">
+        <label>
+          E-mail (é o login)
+          <input type="email" value={a.email} disabled={!!inicial.email} onChange={(e) => setA({ ...a, email: e.target.value })} />
+        </label>
+        <label>
+          Nome
+          <input value={a.nome} onChange={(e) => setA({ ...a, nome: e.target.value })} />
+        </label>
+        <label>
+          Nível de acesso
+          <select value={a.perfil} disabled={proprio} onChange={(e) => setA({ ...a, perfil: e.target.value as Perfil })}>
+            {(Object.keys(NOME_DO_PERFIL) as Perfil[]).map((p) => (
+              <option key={p} value={p}>
+                {NOME_DO_PERFIL[p]}
+              </option>
+            ))}
+          </select>
+        </label>
+        <p className="hint">{proprio ? 'Você não pode mudar o seu próprio nível.' : DESCRICAO_DO_PERFIL[a.perfil]}</p>
+      </div>
+      {erro && <div className="notice err">{erro}</div>}
+      <div className="acoes">
+        <button className="btn primary" type="submit">
+          Salvar
+        </button>
+        <button className="btn ghost" type="button" onClick={fechar}>
+          Cancelar
+        </button>
+      </div>
+    </form>
+  )
+}
+
+function Usuarios() {
+  const { dados, usuario, removerAcesso, avisar } = useApp()
+  const [edit, setEdit] = useState<Acesso | null>(null)
+  const [removendo, setRemovendo] = useState<string | null>(null)
+  if (!dados) return null
+  return (
+    <>
+      {edit && <FormAcesso key={edit.email || 'novo'} inicial={edit} fechar={() => setEdit(null)} />}
+      <div className="panel compact">
+        <div className="toolbar">
+          <span className="spacer" />
+          <button className="btn primary" type="button" onClick={() => setEdit({ email: '', nome: '', perfil: 'vip' })}>
+            Liberar acesso
+          </button>
+        </div>
+        <div className="tbl">
+          <table>
+            <thead>
+              <tr>
+                <th>Nome</th>
+                <th>E-mail</th>
+                <th>Nível</th>
+                <th>O que pode</th>
+                <th />
+              </tr>
+            </thead>
+            <tbody>
+              {[...dados.acessos]
+                .sort((a, b) => a.nome.localeCompare(b.nome))
+                .map((a) => (
+                  <tr key={a.email} onClick={() => setEdit(a)}>
+                    <td>
+                      {a.nome} {a.email === usuario?.email && <span className="muted">(você)</span>}
+                    </td>
+                    <td className="mono">{a.email}</td>
+                    <td>
+                      <span className={`pill ${a.perfil === 'comercial' ? 's-paga' : a.perfil === 'gestao' ? 's-oc' : 's-recebida'}`}>
+                        {NOME_DO_PERFIL[a.perfil]}
+                      </span>
+                    </td>
+                    <td className="muted">{DESCRICAO_DO_PERFIL[a.perfil]}</td>
+                    <td onClick={(e) => e.stopPropagation()}>
+                      {a.email !== usuario?.email &&
+                        (removendo === a.email ? (
+                          <>
+                            <button
+                              className="btn perigo cheio"
+                              type="button"
+                              onClick={() =>
+                                removerAcesso(a.email)
+                                  .then(() => avisar(`Acesso de ${a.nome} removido`))
+                                  .catch((e) => avisar(mensagemDeErro(e)))
+                              }
+                            >
+                              Confirmar
+                            </button>{' '}
+                            <button className="btn ghost" type="button" onClick={() => setRemovendo(null)}>
+                              Cancelar
+                            </button>
+                          </>
+                        ) : (
+                          <button className="btn ghost" type="button" onClick={() => setRemovendo(a.email)}>
+                            Tirar acesso
+                          </button>
+                        ))}
+                    </td>
+                  </tr>
+                ))}
+            </tbody>
+          </table>
+        </div>
+        <p className="hint">Só entra no portal quem está nesta lista. Clique numa pessoa para mudar o nome ou o nível.</p>
+      </div>
+    </>
+  )
+}
+
 export function Cadastros() {
   const { dados, fornecedor } = useApp()
-  const [aba, setAba] = useState<'fornecedores' | 'contratos' | 'historico'>('fornecedores')
+  const [aba, setAba] = useState<'fornecedores' | 'contratos' | 'usuarios' | 'historico'>('fornecedores')
   const [editFornecedor, setEditFornecedor] = useState<Fornecedor | null>(null)
   const [editContrato, setEditContrato] = useState<Contrato | null>(null)
   const [busca, setBusca] = useState('')
@@ -139,6 +275,7 @@ export function Cadastros() {
             [
               ['fornecedores', `Fornecedores`, dados.fornecedores.length],
               ['contratos', 'Contratos básicos', dados.contratos.length],
+              ['usuarios', 'Usuários', dados.acessos.length],
               ['historico', 'Histórico de alterações', dados.auditoria.length],
             ] as const
           ).map(([id, nome, qtd]) => (
@@ -250,6 +387,8 @@ export function Cadastros() {
           </div>
         </>
       )}
+
+      {aba === 'usuarios' && <Usuarios />}
 
       {aba === 'historico' && (
         <div className="panel">

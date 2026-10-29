@@ -27,6 +27,8 @@ describe('calendário das quintas', () => {
 
 const nota = (vencimento: string, etapa: EtapaId = 'conferida'): Nota => ({
   id: 'n1',
+  origem: 'vip',
+  requisicaoId: '',
   fornecedorId: 'f1',
   numero: '1',
   valor: 100,

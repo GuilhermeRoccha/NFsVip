@@ -34,7 +34,7 @@ export function SalaVip() {
   if (!dados) return null
 
   const ativos = dados.fornecedores.filter((f) => f.ativo).sort((a, b) => a.nome.localeCompare(b.nome))
-  const recentes = [...dados.notas].sort((a, b) => recebidaEm(b).localeCompare(recebidaEm(a))).slice(0, 12)
+  const recentes = dados.notas.filter((n) => n.origem === 'vip').sort((a, b) => recebidaEm(b).localeCompare(recebidaEm(a))).slice(0, 12)
 
   async function enviar(e: FormEvent) {
     e.preventDefault()

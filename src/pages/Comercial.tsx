@@ -1,20 +1,24 @@
 import { useMemo, useState } from 'react'
 import { DetalheNota } from '../components/DetalheNota'
+import { LancarNota } from '../components/LancarNota'
 import { StatusNota, TempoParada } from '../components/Status'
 import { estaAberta, etapaAtual, nomeEtapa, recebidaEm } from '../domain/etapas'
 import { DIAS_DE_ANTECEDENCIA, diasAteJanela, ehUrgente, estaVencida, inicioDoDia, janelaDaNota } from '../domain/regras'
-import type { Nota } from '../domain/tipos'
+import type { Ambiente, Nota } from '../domain/tipos'
 import { brl, compacto, data, dataCurta, hora, MESES } from '../lib/formato'
 import { useApp } from '../estado'
 
 type Filtro = 'abertas' | 'urgentes' | 'hoje' | 'pendencia' | 'vencidas' | 'todas'
 
-export function Comercial() {
+/** Fila de notas de um ambiente: as enviadas pela Sala VIP ou as lançadas pelo Comercial. */
+export function Comercial({ origem }: { origem: Ambiente }) {
   const { dados, janela, agora, fornecedor, avisar } = useApp()
   const [filtro, setFiltro] = useState<Filtro>('abertas')
   const [busca, setBusca] = useState('')
   const [mes, setMes] = useState('')
   const [aberta, setAberta] = useState<string | null>(null)
+  const [lancando, setLancando] = useState(false)
+  const doComercial = origem === 'comercial'
 
   const filtros = useMemo(
     (): [Filtro, string, (n: Nota) => boolean][] => [
@@ -29,8 +33,11 @@ export function Comercial() {
   )
 
   if (!dados) return null
-  const notas = dados.notas
+  const notas = dados.notas.filter((n) => n.origem === origem)
   const nomeF = (n: Nota) => fornecedor(n.fornecedorId)?.nome ?? '—'
+  const requisicao = (n: Nota) => dados.requisicoes.find((r) => r.id === n.requisicaoId)
+  // Coluna de referência: contrato básico na Sala VIP; projeto do pedido no Comercial.
+  const referencia = (n: Nota) => (doComercial ? (requisicao(n)?.projeto ?? '') : n.contrato)
 
   const meses = [...new Set(notas.map((n) => recebidaEm(n).slice(0, 7)))].sort().reverse()
   const q = busca.trim().toLowerCase()
@@ -40,7 +47,7 @@ export function Comercial() {
       (n) =>
         testa(n) &&
         (!mes || recebidaEm(n).startsWith(mes)) &&
-        (!q || [nomeF(n), n.numero, n.oc, n.folha, n.chamado, n.contrato].join(' ').toLowerCase().includes(q)),
+        (!q || [nomeF(n), n.numero, n.oc, n.folha, n.chamado, referencia(n)].join(' ').toLowerCase().includes(q)),
     )
     // Ordem de prioridade: abertas pela janela de pagamento mais próxima, depois pelo vencimento.
     .sort((a, b) =>
@@ -56,7 +63,7 @@ export function Comercial() {
   const vencidas = notas.filter(filtros[4][2])
 
   function copiarParaExcel() {
-    const cab = ['Recebida', 'Fornecedor', 'NF', 'Emissão', 'Vencimento', 'Janela de pagamento', 'Urgente', 'Valor', 'Status', 'CB/RC', 'Centro de custo', 'OC', 'MIGO/Folha', 'Chamado']
+    const cab = ['Recebida', 'Fornecedor', 'NF', 'Emissão', 'Vencimento', 'Janela de pagamento', 'Urgente', 'Valor', 'Status', doComercial ? 'Projeto' : 'CB/RC', 'Centro de custo', 'OC', 'MIGO/Folha', 'Chamado']
     const corpo = linhas.map((n) =>
       [
         data(recebidaEm(n)),
@@ -68,7 +75,7 @@ export function Comercial() {
         ehUrgente(n, janela) ? 'Sim' : '',
         n.valor.toLocaleString('pt-BR', { minimumFractionDigits: 2 }),
         n.pendencia ? 'Pendência' : nomeEtapa(etapaAtual(n).etapa),
-        n.contrato,
+        referencia(n),
         n.centroCusto,
         n.oc,
         n.folha,
@@ -135,6 +142,11 @@ export function Comercial() {
           <button className="btn ghost" type="button" onClick={copiarParaExcel}>
             Copiar tabela para o Excel
           </button>
+          {doComercial && (
+            <button className="btn primary" type="button" onClick={() => setLancando(true)}>
+              Lançar NF
+            </button>
+          )}
         </div>
         <div className="tbl">
           <table>
@@ -148,7 +160,7 @@ export function Comercial() {
                 <th>Janela</th>
                 <th>Status</th>
                 <th>Parada há</th>
-                <th>CB / RC</th>
+                <th>{doComercial ? 'Projeto' : 'CB / RC'}</th>
                 <th>C. custo</th>
                 <th>OC</th>
                 <th>MIGO/Folha</th>
@@ -192,7 +204,11 @@ export function Comercial() {
                   <td>
                     <TempoParada nota={n} agora={agora} />
                   </td>
-                  <td className="mono">{n.contrato || <span className="muted">RC</span>}</td>
+                  {doComercial ? (
+                    <td>{referencia(n) || <span className="muted">—</span>}</td>
+                  ) : (
+                    <td className="mono">{n.contrato || <span className="muted">RC</span>}</td>
+                  )}
                   <td className="mono">{n.centroCusto}</td>
                   <td className="mono">{n.oc || <span className="muted">—</span>}</td>
                   <td className="mono">{n.folha || <span className="muted">—</span>}</td>
@@ -203,11 +219,14 @@ export function Comercial() {
           </table>
         </div>
         <p className="hint">
-          Clique numa linha para preencher OC, folha e chamado e avançar a etapa. Cada avanço grava data, hora e
-          responsável.
+          {doComercial
+            ? 'Lance a NF a partir do pedido: empresa, centro de custo e OC vêm sozinhos. Clique numa linha para preencher folha e chamado e avançar a etapa.'
+            : 'Clique numa linha para preencher OC, folha e chamado e avançar a etapa.'}{' '}
+          Cada avanço grava data, hora e responsável.
         </p>
       </div>
       {notaAberta && <DetalheNota nota={notaAberta} fechar={() => setAberta(null)} />}
+      {lancando && <LancarNota fechar={() => setLancando(false)} abrirNota={setAberta} />}
     </>
   )
 }

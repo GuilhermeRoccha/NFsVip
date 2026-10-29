@@ -1,7 +1,8 @@
 import { consumoDoContrato, LIMITE_ALERTA_CONTRATO, situacaoDoSaldo, type SituacaoSaldo } from '../domain/contratos'
+import { faturamento, requisicaoAberta } from '../domain/requisicoes'
 import { ETAPAS, estaAberta, etapaAtual, recebidaEm } from '../domain/etapas'
 import { DIA_MS, inicioDoDia } from '../domain/regras'
-import type { Nota } from '../domain/tipos'
+import type { Ambiente, Nota } from '../domain/tipos'
 import { brl, compacto, MESES } from '../lib/formato'
 import { useApp } from '../estado'
 
@@ -89,10 +90,13 @@ function GraficoMensal({ notas, agora }: { notas: Nota[]; agora: Date }) {
   )
 }
 
-export function Gestao() {
+/** Painel de um ambiente: só as notas da Sala VIP ou só as do Comercial. */
+export function Gestao({ origem }: { origem: Ambiente }) {
   const { dados, agora, fornecedor } = useApp()
   if (!dados) return null
-  const { notas, contratos } = dados
+  const notas = dados.notas.filter((n) => n.origem === origem)
+  // Contratos básicos são da Sala VIP; no Comercial o controle de saldo é por pedido (aba Requisições).
+  const contratos = origem === 'vip' ? dados.contratos : []
 
   const ano = agora.getFullYear()
   const doAno = notas.filter((n) => new Date(recebidaEm(n)).getFullYear() === ano)
@@ -125,7 +129,15 @@ export function Gestao() {
       return { c, usado, situacao: situacaoDoSaldo(usado, c.valor) }
     })
     .sort((a, b) => b.usado / b.c.valor - a.usado / a.c.valor)
-  const emAlerta = saldo.filter((x) => x.situacao !== 'ok')
+  // No Comercial: quanto de cada pedido em aberto já virou NF.
+  const pedidos = dados.requisicoes
+    .filter((r) => origem === 'comercial' && requisicaoAberta(r) && r.pedido)
+    .map((r) => {
+      const usado = faturamento(r, dados.notas).faturado
+      return { r, usado, situacao: situacaoDoSaldo(usado, r.valorTotal) }
+    })
+    .sort((a, b) => b.usado / b.r.valorTotal - a.usado / a.r.valorTotal)
+  const emAlerta = origem === 'vip' ? saldo.filter((x) => x.situacao !== 'ok') : pedidos.filter((x) => x.situacao !== 'ok')
 
   return (
     <>
@@ -197,7 +209,7 @@ export function Gestao() {
         <div className="panel wide">
           <header>
             <div>
-              <h2>Saldo dos contratos básicos</h2>
+              <h2>{origem === 'vip' ? 'Saldo dos contratos básicos' : 'Saldo dos pedidos em aberto'}</h2>
               <p className="sub">
                 Amarelo: {Math.round(LIMITE_ALERTA_CONTRATO * 100)}% ou mais usado. Vermelho: estourado.
               </p>
@@ -210,14 +222,17 @@ export function Gestao() {
           </header>
           <BarrasHorizontais
             maximo={1}
-            barras={saldo.map(({ c, usado, situacao }) => {
-              const p = usado / c.valor
+            barras={(origem === 'vip'
+              ? saldo.map(({ c, usado, situacao }) => ({ nome: fornecedor(c.fornecedorId)?.nome ?? '—', detalhe: `CB ${c.numero}`, total: c.valor, usado, situacao }))
+              : pedidos.map(({ r, usado, situacao }) => ({ nome: r.projeto, detalhe: `${fornecedor(r.fornecedorId)?.nome ?? ''} · ${r.pedido}`, total: r.valorTotal, usado, situacao }))
+            ).map(({ nome, detalhe, total, usado, situacao }) => {
+              const p = usado / total
               return {
-                nome: fornecedor(c.fornecedorId)?.nome ?? '—',
-                detalhe: `CB ${c.numero}`,
+                nome,
+                detalhe,
                 valor: p,
                 situacao,
-                rotulo: `${Math.floor(p * 100)}% · ${p > 1 ? 'estourou ' + compacto(usado - c.valor) : 'resta ' + compacto(c.valor - usado)}`,
+                rotulo: `${Math.floor(p * 100)}% · ${p > 1 ? 'estourou ' + compacto(usado - total) : 'resta ' + compacto(total - usado)}`,
               }
             })}
           />

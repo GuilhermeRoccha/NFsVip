@@ -3,10 +3,19 @@
 Portal interno para receber e acompanhar notas fiscais (NFs) de fornecedores da Sala VIP,
 do recebimento ao pagamento. Substitui o fluxo de e-mail + Excel + pasta do Windows + WhatsApp.
 
-## Quem usa
-- **Sala VIP**: envia a NF (anexo, fornecedor, nº, emissão, vencimento, valor).
-- **Comercial** (dono do processo): confere, preenche OC, MIGO/folha e chamado, avança etapas, mantém os cadastros.
-- **Gestão**: acompanha valores, prazo, ciclo médio, gargalos e saldo dos contratos básicos.
+## Quem usa (níveis de acesso, em `src/domain/acesso.ts`)
+- **Sala VIP**: só o ambiente Notas Sala VIP. Envia a NF (anexo, fornecedor, nº, emissão, vencimento, valor).
+- **Comercial (admin)**: tudo, nos dois ambientes. Confere, preenche OC, MIGO/folha e chamado, avança etapas,
+  mantém os cadastros e libera usuários (Cadastros → Usuários).
+- **Gestão**: só os painéis dos dois ambientes.
+- Login: entra quem está em Usuários, pelo e-mail. Hoje é login de teste, sem senha (modo demonstração).
+
+## Ambientes
+- **Notas Sala VIP**: a Sala VIP envia, o Comercial trata (fluxo abaixo).
+- **Notas Comercial**: compras do próprio Comercial, no lugar da planilha "Controle Requisições de Compra".
+  Requisição (`src/domain/requisicoes.ts`): RC aberta → RC aprovada → Pedido gerado → Pedido aprovado →
+  Serviço em andamento → NF solicitada → Concluída (ou Cancelada). A NF é lançada a partir do pedido,
+  já preenchida, e nasce em "OC emitida". Cada nota tem `origem` ('vip' | 'comercial').
 
 ## Processo (fonte: fluxograma da Sala VIP)
 Etapas, nesta ordem (`src/domain/etapas.ts`):
@@ -21,7 +30,8 @@ Recebida → Conferida → OC emitida → MIGO/Folha → De acordo → Chamado a
 ## Stack
 - React 19 + TypeScript + Vite. CSS puro em `src/index.css` (variáveis de cor, tema escuro automático).
 - Testes: Vitest (`npm test`). Lint: oxlint (`npm run lint`).
-- Hospedagem prevista: Vercel. Banco/arquivos/login previstos: Supabase (ainda não escolhido em definitivo).
+- Por enquanto só modo demonstração (dados no navegador). Supabase + Vercel ficaram para depois
+  (rascunho na proposta #6, ramo `supabase-base`).
 
 ## Arquitetura
 - `src/domain/`: tipos, etapas e regras de negócio. Sem React, fácil de testar.

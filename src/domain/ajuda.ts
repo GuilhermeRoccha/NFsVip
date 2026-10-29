@@ -44,16 +44,18 @@ export const AJUDA_ETAPAS: Record<EtapaId, AjudaEtapa> = {
 }
 
 export const PAPEIS_NO_PORTAL: { perfil: string; faz: string }[] = [
-  { perfil: 'Sala VIP', faz: 'Envia a nota fiscal e acompanha em que etapa cada nota está.' },
+  { perfil: 'Sala VIP', faz: 'Só o ambiente Notas Sala VIP: envia a nota fiscal e acompanha em que etapa cada nota está.' },
   {
-    perfil: 'Comercial',
-    faz: 'Dono do processo. Confere, preenche OC, MIGO/folha e chamado, avança as etapas e mantém fornecedores e contratos em Cadastros.',
+    perfil: 'Comercial (admin)',
+    faz: 'Dono do processo, vê os dois ambientes. Confere, preenche OC, MIGO/folha e chamado e avança as etapas. Em Notas Comercial, controla as próprias requisições e lança as NFs de cada pedido. Mantém fornecedores, contratos e usuários em Cadastros.',
   },
-  { perfil: 'Gestão', faz: 'Acompanha valores, prazos, tempo em cada etapa, gargalos e saldo dos contratos básicos.' },
+  { perfil: 'Gestão', faz: 'Só os painéis dos dois ambientes: valores, prazos, tempo em cada etapa, gargalos e saldos.' },
 ]
 
 export const GLOSSARIO: [termo: string, significado: string][] = [
   ['NF', 'Nota fiscal do fornecedor.'],
+  ['RC', 'Requisição de compra aberta no SAP. Vira pedido depois de aprovada.'],
+  ['Pedido', 'O mesmo que OC. No ambiente Notas Comercial, cada NF é lançada a partir de um pedido.'],
   ['OC', 'Ordem de compra, emitida por Compras no SAP.'],
   ['MIGO / Folha', 'Registro no SAP de que o material chegou (MIGO) ou o serviço foi prestado (folha de serviço).'],
   ['De acordo', 'Aprovação da Sala VIP de que pode pagar.'],

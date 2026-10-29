@@ -3,6 +3,8 @@
 import { inicioDoDia, pagamentoNoOuApos, quintaNoOuApos, DIA_MS } from '../domain/regras'
 import type { Contrato, EtapaId, Fornecedor, Nota } from '../domain/tipos'
 import type { Dados } from './armazenamento'
+import { aleatorio } from './aleatorio'
+import { exemploComercial } from './exemploComercial'
 
 interface Modelo {
   nome: string
@@ -28,15 +30,6 @@ const MODELOS: Modelo[] = [
   { nome: 'Manutenção Vértice', base: 1800, contrato: '', cc: '306.002', tipo: 'Serviços', limite: 0 },
 ]
 
-/** Gerador pseudoaleatório com semente, para o exemplo ser sempre igual. */
-function aleatorio(semente: number) {
-  return () => {
-    semente = (semente + 0x6d2b79f5) | 0
-    let t = Math.imul(semente ^ (semente >>> 15), 1 | semente)
-    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t
-    return ((t ^ (t >>> 14)) >>> 0) / 4294967296
-  }
-}
 
 export function gerarExemplo(agora: Date): Dados {
   const r = aleatorio(20261015)
@@ -80,6 +73,8 @@ export function gerarExemplo(agora: Date): Dados {
     const m = MODELOS[fi]
     return {
       id: `n${seq++}`,
+      origem: 'vip',
+      requisicaoId: '',
       fornecedorId: `f${fi + 1}`,
       numero: String(1000 + Math.floor(r() * 98000)),
       valor: Math.round(m.base * (0.45 + r() * 1.1) * 100) / 100,
@@ -162,5 +157,17 @@ export function gerarExemplo(agora: Date): Dados {
   const comPendencia = notas.find((n) => n.etapas.length === 3)
   if (comPendencia) comPendencia.pendencia = 'Valor da NF diferente da OC (R$ 120,00 a mais)'
 
-  return { notas, fornecedores, contratos, auditoria: [] }
+  const comercial = exemploComercial(agora, fornecedores.length)
+  return {
+    notas: [...notas, ...comercial.notas],
+    fornecedores: [...fornecedores, ...comercial.fornecedores],
+    contratos,
+    requisicoes: comercial.requisicoes,
+    acessos: [
+      { email: 'comercial@exemplo.com', nome: 'Comercial', perfil: 'comercial' },
+      { email: 'salavip@exemplo.com', nome: 'Sala VIP', perfil: 'vip' },
+      { email: 'gestao@exemplo.com', nome: 'Gestão', perfil: 'gestao' },
+    ],
+    auditoria: [],
+  }
 }
