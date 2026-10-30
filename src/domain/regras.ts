@@ -72,12 +72,16 @@ export function pagamentoNoOuAntes(d: Date): Date {
 export const perdeuAJanela = (n: Nota, j: Janela) => pagamentoNoOuAntes(new Date(n.vencimento)) < j.hoje
 
 /**
- * Janela de pagamento da nota: o último dia de pagamento até o vencimento.
- * Se esse dia já passou, a nota vai para o próximo pagamento.
+ * Previsão de pagamento para um vencimento: o último dia de pagamento até ele.
+ * Se esse dia já passou, fica para o próximo pagamento.
  */
-export function janelaDaNota(n: Nota, j: Janela): Date {
-  return perdeuAJanela(n, j) ? j.proximoPagamento : pagamentoNoOuAntes(new Date(n.vencimento))
+export function previsaoDePagamento(vencimento: string | Date, j: Janela): Date {
+  const ultimo = pagamentoNoOuAntes(new Date(vencimento))
+  return ultimo < j.hoje ? j.proximoPagamento : ultimo
 }
+
+/** Janela de pagamento da nota (a previsão de pagamento pelo vencimento). */
+export const janelaDaNota = (n: Nota, j: Janela): Date => previsaoDePagamento(n.vencimento, j)
 
 /** Dias corridos de hoje até a janela de pagamento da nota. */
 export const diasAteJanela = (n: Nota, j: Janela) => Math.round((+janelaDaNota(n, j) - +j.hoje) / DIA_MS)

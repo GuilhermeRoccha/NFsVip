@@ -27,6 +27,8 @@ describe('calendário das quintas', () => {
 
 const nota = (vencimento: string, etapa: EtapaId = 'conferida'): Nota => ({
   id: 'n1',
+  origem: 'vip',
+  requisicaoId: '',
   fornecedorId: 'f1',
   numero: '1',
   valor: 100,
@@ -38,6 +40,7 @@ const nota = (vencimento: string, etapa: EtapaId = 'conferida'): Nota => ({
   folha: '',
   chamado: '',
   pendencia: '',
+  previsaoPagamento: '',
   arquivoNome: '',
   etapas: [{ etapa, em: d('2026-10-02').toISOString(), por: 'Sala VIP' }],
   alteracoes: [],

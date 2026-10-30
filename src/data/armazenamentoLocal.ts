@@ -1,25 +1,34 @@
 import { proximaEtapa } from '../domain/etapas'
 import { bloqueioParaAvancar } from '../domain/regras'
-import type { Contrato, Fornecedor, Nota } from '../domain/tipos'
+import { aceitaNota, descreverEdicao } from '../domain/requisicoes'
+import type { Acesso, Contrato, Fornecedor, Nota, Requisicao, StatusRequisicao, Util } from '../domain/tipos'
 import { ErroDeRegra, type Armazenamento, type Dados } from './armazenamento'
 import { apagarArquivo, guardarArquivo, lerArquivo, limparArquivos } from './arquivosLocais'
+import {
+  checarExclusaoRequisicao,
+  checarStatus,
+  descreverAlteracoes,
+  descricaoAcesso,
+  descricaoExclusao,
+  descricaoExclusaoRequisicao,
+  descricaoRemocaoAcesso,
+  descricaoUtil,
+  etapasIniciais,
+  MSG_NF_DUPLICADA,
+  MSG_REQUISICAO_SEM_PEDIDO,
+  validarAcesso,
+  validarContrato,
+  validarFornecedor,
+  validarReq,
+  validarUtil,
+} from './comum'
 import { gerarExemplo } from './exemplo'
 
-const CHAVE = 'portal-nf-dados-v1'
+// v4: notas com origem, previsão de pagamento manual, requisições, acessos e úteis.
+const CHAVE = 'portal-nf-dados-v4'
 
 const novoId = () => crypto.randomUUID()
 const agoraISO = () => new Date().toISOString()
-
-const ROTULOS: Partial<Record<keyof Nota, string>> = {
-  contrato: 'Contrato/RC',
-  centroCusto: 'Centro de custo',
-  oc: 'OC',
-  folha: 'MIGO/Folha',
-  chamado: 'Chamado',
-  valor: 'Valor',
-  vencimento: 'Vencimento',
-  pendencia: 'Pendência',
-}
 
 /** Implementação de demonstração: tudo fica no navegador de quem está usando. */
 export class ArmazenamentoLocal implements Armazenamento {
@@ -61,20 +70,29 @@ export class ArmazenamentoLocal implements Armazenamento {
     const duplicada = this.dados.notas.some(
       (n) => n.fornecedorId === nova.fornecedorId && n.numero.trim() === nova.numero.trim(),
     )
-    if (duplicada) throw new ErroDeRegra('Essa NF já foi enviada para este fornecedor. Confira o número antes de reenviar.')
+    if (duplicada) throw new ErroDeRegra(MSG_NF_DUPLICADA)
     const f = this.dados.fornecedores.find((x) => x.id === nova.fornecedorId)
     const contrato = this.dados.contratos.find((c) => c.fornecedorId === nova.fornecedorId && c.ativo)
+    const { requisicaoId = '', ...campos } = nova
+    // Nota do Comercial: os dados vêm do pedido.
+    const req = requisicaoId ? this.dados.requisicoes.find((r) => r.id === requisicaoId) : undefined
+    if (requisicaoId && (!req || !aceitaNota(req))) throw new ErroDeRegra(MSG_REQUISICAO_SEM_PEDIDO)
+    const em = agoraISO()
     const nota: Nota = {
       id: novoId(),
-      ...nova,
-      contrato: contrato?.numero ?? '',
-      centroCusto: f?.centroCusto ?? '',
-      oc: '',
+      origem: req ? 'comercial' : 'vip',
+      requisicaoId,
+      ...campos,
+      fornecedorId: req?.fornecedorId ?? campos.fornecedorId,
+      contrato: req ? '' : (contrato?.numero ?? ''),
+      centroCusto: req?.centroCusto ?? f?.centroCusto ?? '',
+      oc: req?.pedido ?? '',
       folha: '',
       chamado: '',
       pendencia: '',
+      previsaoPagamento: '',
       arquivoNome: arquivo?.name ?? '',
-      etapas: [{ etapa: 'recebida', em: agoraISO(), por }],
+      etapas: etapasIniciais(!!req).map((etapa) => ({ etapa, em, por })),
       alteracoes: [],
     }
     if (arquivo) await guardarArquivo(nota.id, arquivo)
@@ -85,14 +103,10 @@ export class ArmazenamentoLocal implements Armazenamento {
 
   async atualizarNota(id: string, campos: Partial<Nota>, por: string) {
     const n = this.nota(id)
-    const mudou = (Object.keys(campos) as (keyof Nota)[]).filter((k) => campos[k] !== n[k])
-    if (!mudou.length) return structuredClone(n)
-    for (const k of mudou) {
-      const antes = String(n[k] ?? '') || 'vazio'
-      const depois = String(campos[k] ?? '') || 'vazio'
-      n.alteracoes.push({ em: agoraISO(), por, descricao: `${ROTULOS[k] ?? k}: ${antes} → ${depois}` })
-    }
-    Object.assign(n, campos)
+    const { mudou, descricoes } = descreverAlteracoes(n, campos)
+    if (!descricoes.length) return structuredClone(n)
+    for (const descricao of descricoes) n.alteracoes.push({ em: agoraISO(), por, descricao })
+    Object.assign(n, mudou)
     this.gravar()
     return structuredClone(n)
   }
@@ -116,7 +130,7 @@ export class ArmazenamentoLocal implements Armazenamento {
       em: agoraISO(),
       por,
       entidade: 'nota',
-      descricao: `Excluiu a NF ${n.numero} de ${f?.nome ?? 'fornecedor desconhecido'} (R$ ${n.valor.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}). Motivo: ${motivo.trim()}`,
+      descricao: descricaoExclusao(n, f?.nome ?? 'fornecedor desconhecido', motivo),
     })
     this.gravar()
     if (n.arquivoNome) await apagarArquivo(id).catch(() => undefined)
@@ -124,11 +138,7 @@ export class ArmazenamentoLocal implements Armazenamento {
 
   async salvarFornecedor(f: Fornecedor, por: string) {
     const existente = this.dados.fornecedores.find((x) => x.id === f.id)
-    const nomeRepetido = this.dados.fornecedores.some(
-      (x) => x.id !== f.id && x.nome.trim().toLowerCase() === f.nome.trim().toLowerCase(),
-    )
-    if (!f.nome.trim()) throw new ErroDeRegra('Informe o nome do fornecedor.')
-    if (nomeRepetido) throw new ErroDeRegra('Já existe um fornecedor com esse nome.')
+    validarFornecedor(f, this.dados.fornecedores)
     const salvo = { ...f, id: f.id || novoId() }
     if (existente) Object.assign(existente, salvo)
     else this.dados.fornecedores.push(salvo)
@@ -143,9 +153,7 @@ export class ArmazenamentoLocal implements Armazenamento {
   }
 
   async salvarContrato(c: Contrato, por: string) {
-    if (!c.numero.trim()) throw new ErroDeRegra('Informe o número do contrato.')
-    if (!c.fornecedorId) throw new ErroDeRegra('Escolha o fornecedor do contrato.')
-    if (!(c.valor > 0)) throw new ErroDeRegra('Informe o valor do contrato.')
+    validarContrato(c)
     const existente = this.dados.contratos.find((x) => x.id === c.id)
     const salvo = { ...c, id: c.id || novoId() }
     if (existente) Object.assign(existente, salvo)
@@ -158,6 +166,92 @@ export class ArmazenamentoLocal implements Armazenamento {
     })
     this.gravar()
     return structuredClone(salvo)
+  }
+
+  private requisicao(id: string): Requisicao {
+    const r = this.dados.requisicoes.find((x) => x.id === id)
+    if (!r) throw new ErroDeRegra('Requisição não encontrada.')
+    return r
+  }
+
+  private nomeFornecedor = (id: string) => this.dados.fornecedores.find((f) => f.id === id)?.nome ?? '—'
+
+  async salvarRequisicao(r: Requisicao, por: string) {
+    validarReq(r)
+    const limpo = { ...r, projeto: r.projeto.trim(), rc: r.rc.trim(), pedido: r.pedido.trim() }
+    if (!r.id) {
+      const nova: Requisicao = {
+        ...limpo,
+        id: novoId(),
+        status: 'rc_aberta',
+        historico: [{ em: agoraISO(), por, descricao: 'Requisição registrada' }],
+      }
+      this.dados.requisicoes.push(nova)
+      this.gravar()
+      return structuredClone(nova)
+    }
+    const atual = this.requisicao(r.id)
+    for (const descricao of descreverEdicao(atual, limpo, this.nomeFornecedor)) atual.historico.push({ em: agoraISO(), por, descricao })
+    const { status: _status, historico: _historico, ...campos } = limpo
+    Object.assign(atual, campos)
+    this.gravar()
+    return structuredClone(atual)
+  }
+
+  async mudarStatusRequisicao(id: string, status: StatusRequisicao, por: string, motivo = '') {
+    const r = this.requisicao(id)
+    const descricao = checarStatus(r, status, motivo)
+    r.status = status
+    r.historico.push({ em: agoraISO(), por, descricao })
+    this.gravar()
+    return structuredClone(r)
+  }
+
+  async excluirRequisicao(id: string, motivo: string, por: string) {
+    const r = this.requisicao(id)
+    checarExclusaoRequisicao(r, this.dados.notas, motivo)
+    this.dados.requisicoes = this.dados.requisicoes.filter((x) => x.id !== id)
+    this.dados.auditoria.push({
+      em: agoraISO(),
+      por,
+      entidade: 'requisicao',
+      descricao: descricaoExclusaoRequisicao(r, this.nomeFornecedor(r.fornecedorId), motivo),
+    })
+    this.gravar()
+  }
+
+  async salvarAcesso(a: Acesso, por: string) {
+    const novo = validarAcesso(a)
+    const antes = this.dados.acessos.find((x) => x.email === novo.email)
+    if (antes && antes.nome === novo.nome && antes.perfil === novo.perfil) return
+    this.dados.acessos = [...this.dados.acessos.filter((x) => x.email !== novo.email), novo]
+    this.dados.auditoria.push({ em: agoraISO(), por, entidade: 'acesso', descricao: descricaoAcesso(novo, antes) })
+    this.gravar()
+  }
+
+  async removerAcesso(email: string, por: string) {
+    const a = this.dados.acessos.find((x) => x.email === email)
+    if (!a) return
+    this.dados.acessos = this.dados.acessos.filter((x) => x.email !== email)
+    this.dados.auditoria.push({ em: agoraISO(), por, entidade: 'acesso', descricao: descricaoRemocaoAcesso(a) })
+    this.gravar()
+  }
+
+  async salvarUtil(u: Util, por: string) {
+    const limpo = validarUtil(u)
+    const existente = this.dados.uteis.find((x) => x.id === u.id)
+    if (existente) Object.assign(existente, limpo)
+    else this.dados.uteis.push({ ...limpo, id: novoId() })
+    this.dados.auditoria.push({ em: agoraISO(), por, entidade: 'util', descricao: descricaoUtil(limpo, existente ? 'Editou' : 'Adicionou') })
+    this.gravar()
+  }
+
+  async excluirUtil(id: string, por: string) {
+    const u = this.dados.uteis.find((x) => x.id === id)
+    if (!u) return
+    this.dados.uteis = this.dados.uteis.filter((x) => x.id !== id)
+    this.dados.auditoria.push({ em: agoraISO(), por, entidade: 'util', descricao: descricaoUtil(u, 'Excluiu') })
+    this.gravar()
   }
 
   async urlDoArquivo(notaId: string) {

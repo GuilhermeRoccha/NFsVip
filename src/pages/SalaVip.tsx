@@ -1,7 +1,7 @@
 import { useEffect, useState, type DragEvent, type FormEvent } from 'react'
 import { StatusNota } from '../components/Status'
-import { recebidaEm } from '../domain/etapas'
-import { brl, dataCurta, dataHora, deInputData, lerValor } from '../lib/formato'
+import { estaAberta, etapaAtual, recebidaEm } from '../domain/etapas'
+import { brl, data, dataCurta, dataHora, deInputData, lerValor } from '../lib/formato'
 import { mensagemDeErro, useApp } from '../estado'
 
 const VAZIO = { arquivo: null as File | null, fornecedor: '', numero: '', valor: '', emissao: '', vencimento: '' }
@@ -34,7 +34,7 @@ export function SalaVip() {
   if (!dados) return null
 
   const ativos = dados.fornecedores.filter((f) => f.ativo).sort((a, b) => a.nome.localeCompare(b.nome))
-  const recentes = [...dados.notas].sort((a, b) => recebidaEm(b).localeCompare(recebidaEm(a))).slice(0, 12)
+  const recentes = dados.notas.filter((n) => n.origem === 'vip').sort((a, b) => recebidaEm(b).localeCompare(recebidaEm(a))).slice(0, 12)
 
   async function enviar(e: FormEvent) {
     e.preventDefault()
@@ -187,6 +187,23 @@ export function SalaVip() {
                 Enviada {dataHora(recebidaEm(n))} · vence {dataCurta(n.vencimento)}
               </span>
               <span className="mono small right">{brl(n.valor)}</span>
+              {/* A informação que a Sala VIP mais procura: quando o fornecedor recebe. */}
+              <span className="pagamento">
+                {/* A previsão só aparece depois que o Comercial informa na fila de notas. */}
+                {estaAberta(n) ? (
+                  n.previsaoPagamento ? (
+                    <>
+                      Pagamento previsto <b>{diaEData(n.previsaoPagamento)}</b>
+                    </>
+                  ) : (
+                    <span className="muted">Previsão de pagamento: aguardando o Comercial</span>
+                  )
+                ) : (
+                  <>
+                    Paga em <b>{diaEData(etapaAtual(n).em)}</b>
+                  </>
+                )}
+              </span>
             </div>
           ))}
         </div>
@@ -194,3 +211,7 @@ export function SalaVip() {
     </div>
   )
 }
+
+const DIAS = ['dom', 'seg', 'ter', 'qua', 'qui', 'sex', 'sáb']
+const diaEData = (d: string | Date) => `${DIAS[new Date(d).getDay()]} ${data(d)}`
+
