@@ -266,13 +266,6 @@ form.lancar { display: grid; gap: 12px; }
 .lista-nfs li { display: grid; grid-template-columns: 1fr auto auto auto; gap: 10px; align-items: center; }
 
 /* Previsão de pagamento (Sala VIP) */
-.previsao { display: grid; gap: 2px; padding: 12px 14px; border-radius: var(--r); background: var(--good-soft); border: 1px solid transparent; }
-.previsao .k { font-size: 11px; text-transform: uppercase; letter-spacing: .06em; font-weight: 600; color: var(--fg-2); }
-.previsao .v { font-family: var(--f-display); font-size: 22px; font-weight: 600; color: var(--good); font-variant-numeric: tabular-nums; }
-.previsao .d { font-size: 12px; color: var(--fg-2); }
-.previsao.vazia { background: var(--surface-2); }
-.previsao.atrasada { background: var(--warn-soft); }
-.previsao.atrasada .v { color: var(--warn); }
 .list .it .pagamento { grid-column: 1 / -1; font-size: 13px; color: var(--fg-2); }
 .list .it .pagamento b { color: var(--good); font-family: var(--f-mono); font-weight: 600; }
 
@@ -292,3 +285,5 @@ form.lancar { display: grid; gap: 12px; }
 .orientacoes article.editavel:hover { border-color: var(--accent); }
 .orientacoes h3 { font-size: 14px; margin: 0 0 4px; }
 .orientacoes p { margin: 0; font-size: 13px; color: var(--fg-2); line-height: 1.5; }
+.previsao-manual { display: grid; gap: 4px; padding: 10px 12px; border-radius: var(--r); background: var(--good-soft); }
+.previsao-manual .hint { margin: 0; }

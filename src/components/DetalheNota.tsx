@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import { ETAPAS, estaAberta, indiceEtapa, etapaAtual, nomeEtapa, proximaEtapa } from '../domain/etapas'
 import { avisoDeCalendario, DIA_MS, diasAteJanela, ehUrgente, janelaDaNota } from '../domain/regras'
 import type { Nota } from '../domain/tipos'
-import { data, dataCurta, dataHora, dias, lerValor } from '../lib/formato'
+import { data, dataCurta, dataHora, deInputData, dias, lerValor, paraInputData } from '../lib/formato'
 import { armazenamento } from '../data'
 import { mensagemDeErro, useApp } from '../estado'
 import { StatusNota } from './Status'
@@ -15,7 +15,7 @@ const CAMPOS = [
   ['chamado', 'Chamado'],
 ] as const
 
-type Edicao = Record<(typeof CAMPOS)[number][0], string> & { valor: string; vencimento: string }
+type Edicao = Record<(typeof CAMPOS)[number][0], string> & { valor: string; vencimento: string; previsao: string }
 
 const paraEdicao = (n: Nota): Edicao => ({
   contrato: n.contrato,
@@ -25,6 +25,7 @@ const paraEdicao = (n: Nota): Edicao => ({
   chamado: n.chamado,
   valor: n.valor.toLocaleString('pt-BR', { minimumFractionDigits: 2 }),
   vencimento: n.vencimento.slice(0, 10),
+  previsao: n.previsaoPagamento ? paraInputData(n.previsaoPagamento) : '',
 })
 
 /** Painel lateral com os dados da nota, edição, avanço de etapa e histórico. */
@@ -56,6 +57,8 @@ export function DetalheNota({ nota, fechar }: { nota: Nota; fechar(): void }) {
     for (const [k] of campos) if (ed[k].trim() !== nota[k]) c[k] = ed[k].trim()
     if (valor > 0 && valor !== nota.valor) c.valor = valor
     if (ed.vencimento && venc !== nota.vencimento) c.vencimento = venc
+    const previsao = ed.previsao ? deInputData(ed.previsao) : ''
+    if (previsao !== nota.previsaoPagamento) c.previsaoPagamento = previsao
     return c
   }
 
@@ -145,6 +148,27 @@ export function DetalheNota({ nota, fechar }: { nota: Nota; fechar(): void }) {
             )}
           </dd>
         </dl>
+        {estaAberta(nota) && (
+          <div className="previsao-manual">
+            <label>
+              Previsão de pagamento
+              <input type="date" value={ed.previsao} onChange={(e) => setEd({ ...ed, previsao: e.target.value })} />
+            </label>
+            <span className="hint">
+              {nota.origem === 'vip' ? 'Só aparece para a Sala VIP depois de salva.' : 'Informada pelo Comercial.'}{' '}
+              {/* Atalho: a quinta da regra de pagamento, para não digitar. */}
+              {paraInputData(janelaDaNota(nota, janela).toISOString()) !== ed.previsao && (
+                <button
+                  type="button"
+                  className="link"
+                  onClick={() => setEd({ ...ed, previsao: paraInputData(janelaDaNota(nota, janela).toISOString()) })}
+                >
+                  Usar {dataCurta(janelaDaNota(nota, janela))} (regra das quintas)
+                </button>
+              )}
+            </span>
+          </div>
+        )}
         <div className="row2">
           <label>
             Valor (R$)

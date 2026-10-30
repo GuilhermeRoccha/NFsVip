@@ -36,6 +36,7 @@ const nota = (valor: number, paga: boolean, requisicaoId = 'r1'): Nota => ({
   folha: '',
   chamado: '',
   pendencia: '',
+  previsaoPagamento: '',
   arquivoNome: '',
   etapas: [{ etapa: paga ? 'paga' : 'recebida', em: '', por: '' }],
   alteracoes: [],

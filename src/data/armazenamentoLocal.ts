@@ -24,8 +24,8 @@ import {
 } from './comum'
 import { gerarExemplo } from './exemplo'
 
-// v3: notas com origem (Sala VIP ou Comercial), requisições, acessos e úteis.
-const CHAVE = 'portal-nf-dados-v3'
+// v4: notas com origem, previsão de pagamento manual, requisições, acessos e úteis.
+const CHAVE = 'portal-nf-dados-v4'
 
 const novoId = () => crypto.randomUUID()
 const agoraISO = () => new Date().toISOString()
@@ -90,6 +90,7 @@ export class ArmazenamentoLocal implements Armazenamento {
       folha: '',
       chamado: '',
       pendencia: '',
+      previsaoPagamento: '',
       arquivoNome: arquivo?.name ?? '',
       etapas: etapasIniciais(!!req).map((etapa) => ({ etapa, em, por })),
       alteracoes: [],

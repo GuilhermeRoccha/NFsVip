@@ -87,6 +87,7 @@ export function gerarExemplo(agora: Date): Dados {
       folha: '',
       chamado: '',
       pendencia: '',
+      previsaoPagamento: '',
       arquivoNome: '',
       etapas: [{ etapa: 'recebida', em: recebida.toISOString(), por: 'Sala VIP' }],
       alteracoes: [],
@@ -141,6 +142,8 @@ export function gerarExemplo(agora: Date): Dados {
       nota.chamado = chamadoDaQuinta[chave]
 
       const pagamento = pagamentoNoOuApos(new Date(t.getTime() + DIA_MS * (r() < 0.7 ? 7 : 14)))
+      // Com o chamado aberto, o Comercial informa a previsão de pagamento.
+      nota.previsaoPagamento = inicioDoDia(pagamento).toISOString()
       pagamento.setHours(15, 0)
       if (pagamento > agora) continue
       nota.etapas.push({ etapa: 'paga', em: pagamento.toISOString(), por: 'Financeiro' })

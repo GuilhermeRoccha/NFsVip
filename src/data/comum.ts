@@ -5,6 +5,7 @@ import { emailValido, NOME_DO_PERFIL, normalizarEmail } from '../domain/acesso'
 import { ETAPAS } from '../domain/etapas'
 import { bloqueioDoStatus, descreverStatus, notasDaRequisicao, validarRequisicao } from '../domain/requisicoes'
 import type { Acesso, Contrato, EtapaId, Fornecedor, Nota, Requisicao, StatusRequisicao, Util } from '../domain/tipos'
+import { data } from '../lib/formato'
 import { ErroDeRegra } from './armazenamento'
 
 const ROTULOS: Partial<Record<keyof Nota, string>> = {
@@ -16,6 +17,7 @@ const ROTULOS: Partial<Record<keyof Nota, string>> = {
   valor: 'Valor',
   vencimento: 'Vencimento',
   pendencia: 'Pendência',
+  previsaoPagamento: 'Previsão de pagamento',
 }
 
 /** Só os campos que de fato mudaram, cada um com a frase que vai para o histórico da nota. */
@@ -25,8 +27,10 @@ export function descreverAlteracoes(n: Nota, campos: Partial<Nota>): { mudou: Pa
   for (const k of Object.keys(campos) as (keyof Nota)[]) {
     if (campos[k] === n[k]) continue
     Object.assign(mudou, { [k]: campos[k] })
-    const antes = String(n[k] ?? '') || 'vazio'
-    const depois = String(campos[k] ?? '') || 'vazio'
+    // Datas no histórico como 05/11/2026, não no formato do sistema.
+    const texto = (v: unknown) => (!v ? 'vazio' : k === 'vencimento' || k === 'previsaoPagamento' ? data(String(v)) : String(v))
+    const antes = texto(n[k])
+    const depois = texto(campos[k])
     descricoes.push(`${ROTULOS[k] ?? k}: ${antes} → ${depois}`)
   }
   return { mudou, descricoes }

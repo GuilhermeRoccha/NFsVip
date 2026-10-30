@@ -40,6 +40,7 @@ const nota = (vencimento: string, etapa: EtapaId = 'conferida'): Nota => ({
   folha: '',
   chamado: '',
   pendencia: '',
+  previsaoPagamento: '',
   arquivoNome: '',
   etapas: [{ etapa, em: d('2026-10-02').toISOString(), por: 'Sala VIP' }],
   alteracoes: [],

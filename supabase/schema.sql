@@ -33,6 +33,7 @@ create table notas (
   folha text not null default '',
   chamado text not null default '',
   pendencia text not null default '',
+  previsao_pagamento date,
   arquivo_caminho text,          -- caminho no bucket privado "notas" do Storage
   arquivo_nome text not null default '',
   unique (fornecedor_id, numero) -- impede NF duplicada

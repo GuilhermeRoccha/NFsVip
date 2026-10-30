@@ -63,7 +63,7 @@ export function Comercial({ origem }: { origem: Ambiente }) {
   const vencidas = notas.filter(filtros[4][2])
 
   function copiarParaExcel() {
-    const cab = ['Recebida', 'Fornecedor', 'NF', 'Emissão', 'Vencimento', 'Janela de pagamento', 'Urgente', 'Valor', 'Status', doComercial ? 'Projeto' : 'CB/RC', 'Centro de custo', 'OC', 'MIGO/Folha', 'Chamado']
+    const cab = ['Recebida', 'Fornecedor', 'NF', 'Emissão', 'Vencimento', 'Janela de pagamento', 'Previsão de pagamento', 'Urgente', 'Valor', 'Status', doComercial ? 'Projeto' : 'CB/RC', 'Centro de custo', 'OC', 'MIGO/Folha', 'Chamado']
     const corpo = linhas.map((n) =>
       [
         data(recebidaEm(n)),
@@ -72,6 +72,7 @@ export function Comercial({ origem }: { origem: Ambiente }) {
         data(n.emissao),
         data(n.vencimento),
         estaAberta(n) ? data(janelaDaNota(n, janela)) : '',
+        n.previsaoPagamento ? data(n.previsaoPagamento) : '',
         ehUrgente(n, janela) ? 'Sim' : '',
         n.valor.toLocaleString('pt-BR', { minimumFractionDigits: 2 }),
         n.pendencia ? 'Pendência' : nomeEtapa(etapaAtual(n).etapa),
@@ -158,6 +159,7 @@ export function Comercial({ origem }: { origem: Ambiente }) {
                 <th className="num">Valor</th>
                 <th>Vencimento</th>
                 <th>Janela</th>
+                <th title="Informada pelo Comercial; é a data que a Sala VIP vê">Previsão pgto</th>
                 <th>Status</th>
                 <th>Parada há</th>
                 <th>{doComercial ? 'Projeto' : 'CB / RC'}</th>
@@ -170,7 +172,7 @@ export function Comercial({ origem }: { origem: Ambiente }) {
             <tbody>
               {linhas.length === 0 && (
                 <tr>
-                  <td colSpan={13} className="empty">
+                  <td colSpan={14} className="empty">
                     Nenhuma nota neste filtro.
                   </td>
                 </tr>
@@ -197,6 +199,9 @@ export function Comercial({ origem }: { origem: Ambiente }) {
                     ) : (
                       <span className="muted">—</span>
                     )}
+                  </td>
+                  <td className="mono">
+                    {n.previsaoPagamento ? dataCurta(n.previsaoPagamento) : <span className="muted">a informar</span>}
                   </td>
                   <td>
                     <StatusNota nota={n} />

@@ -103,6 +103,7 @@ export function exemploComercial(agora: Date, primeiroId: number) {
         folha: '',
         chamado: '',
         pendencia: '',
+        previsaoPagamento: '',
         arquivoNome: '',
         etapas: (['recebida', 'conferida', 'oc'] as EtapaId[]).map((etapa) => ({ etapa, em: recebida.toISOString(), por: 'Comercial' })),
         alteracoes: [],
@@ -125,6 +126,7 @@ export function exemploComercial(agora: Date, primeiroId: number) {
       n.etapas.push({ etapa: 'chamado', em: t.toISOString(), por: 'Comercial' })
       n.chamado = String((chamado += 7))
       const pagamento = pagamentoNoOuApos(new Date(t.getTime() + 7 * DIA_MS))
+      n.previsaoPagamento = inicioDoDia(pagamento).toISOString()
       pagamento.setHours(15, 0)
       if (pagamento > agora) continue
       n.etapas.push({ etapa: 'paga', em: pagamento.toISOString(), por: 'Financeiro' })

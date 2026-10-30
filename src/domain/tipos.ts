@@ -45,6 +45,8 @@ export interface Nota {
   chamado: string
   /** Texto da pendência em aberto; vazio quando não há. */
   pendencia: string
+  /** Data prevista de pagamento, preenchida pelo Comercial na fila (ISO). Vazio até ser informada. */
+  previsaoPagamento: string
   /** Nome original do arquivo anexado, se houver. */
   arquivoNome: string
   etapas: RegistroEtapa[]
