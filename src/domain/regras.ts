@@ -118,3 +118,33 @@ export function avisoDeCalendario(n: Nota, agora: Date): string | undefined {
   if (prox?.id === 'paga' && !ehDiaDePagamento(agora)) return 'Hoje não é dia de pagamento.'
   return undefined
 }
+
+/** Um dia do calendário de datas do mês: se tem abertura de chamados e/ou pagamento. */
+export interface DiaDoMes {
+  dia: Date
+  chamado: boolean
+  pagamento: boolean
+}
+
+/** Todos os dias do mês (mes de 0 a 11), marcando as quintas de chamado e as de pagamento. */
+export function diasDoMes(ano: number, mes: number): DiaDoMes[] {
+  const dias: DiaDoMes[] = []
+  for (let d = new Date(ano, mes, 1); d.getMonth() === mes; d = somarDias(d, 1)) {
+    const quinta = d.getDay() === QUINTA
+    dias.push({ dia: d, chamado: quinta, pagamento: quinta && d.getDate() <= ULTIMO_DIA_DE_PAGAMENTO })
+  }
+  return dias
+}
+
+/**
+ * Aviso curto para o ícone de datas: só aparece na véspera e no dia da quinta,
+ * para lembrar sem ocupar espaço. Undefined nos outros dias.
+ */
+export function avisoDeDatas(agora: Date): string | undefined {
+  const hoje = inicioDoDia(agora)
+  const amanha = somarDias(hoje, 1)
+  if (ehDiaDeChamado(hoje)) return ehDiaDePagamento(hoje) ? 'Hoje tem abertura de chamados e pagamento' : 'Hoje tem abertura de chamados'
+  if (ehDiaDeChamado(amanha))
+    return ehDiaDePagamento(amanha) ? 'Amanhã tem abertura de chamados e pagamento' : 'Amanhã tem abertura de chamados'
+  return undefined
+}

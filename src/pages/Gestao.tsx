@@ -1,9 +1,11 @@
 import { consumoDoContrato, LIMITE_ALERTA_CONTRATO, situacaoDoSaldo, type SituacaoSaldo } from '../domain/contratos'
 import { faturamento, requisicaoAberta } from '../domain/requisicoes'
 import { ETAPAS, estaAberta, etapaAtual, recebidaEm } from '../domain/etapas'
-import { DIA_MS, inicioDoDia } from '../domain/regras'
+import { StatusNota, TempoParada } from '../components/Status'
+import { DIAS_PARADA, diasNaEtapa, maisParadas, mesAnterior, resumoDoMes, saemNoProximoPagamento } from '../domain/painel'
+import { DIA_MS, estaVencida, inicioDoDia } from '../domain/regras'
 import type { Ambiente, Nota } from '../domain/tipos'
-import { brl, compacto, MESES } from '../lib/formato'
+import { brl, compacto, dataCurta, MESES } from '../lib/formato'
 import { useApp } from '../estado'
 
 const soma = (l: Nota[]) => l.reduce((s, n) => s + n.valor, 0)
@@ -35,6 +37,7 @@ function BarrasHorizontais({ barras, maximo }: { barras: Barra[]; maximo: number
   )
 }
 
+/** Linha do valor recebido por mês (últimos 10 meses). O mês em andamento fica com o ponto vazado. */
 function GraficoMensal({ notas, agora }: { notas: Nota[]; agora: Date }) {
   const porMes: Record<string, number> = {}
   for (const n of notas) {
@@ -44,19 +47,21 @@ function GraficoMensal({ notas, agora }: { notas: Nota[]; agora: Date }) {
   const meses = Object.keys(porMes).sort().slice(-10)
   const valores = meses.map((k) => porMes[k])
   const max = Math.max(...valores, 1)
-  const W = 760, H = 240, esq = 56, base = 28, topo = 24
-  const larg = (W - esq - 16) / Math.max(1, meses.length)
+  const W = 760, H = 240, esq = 56, dir = 24, base = 28, topo = 24
   const passo = Math.pow(10, Math.floor(Math.log10(max)))
   const tick = [1, 2, 2.5, 5, 10].map((m) => m * passo).find((t) => max / t <= 5)!
   const teto = Math.ceil(max / tick) * tick
+  const x = (i: number) => (meses.length < 2 ? (esq + W - dir) / 2 : esq + ((W - esq - dir) * i) / (meses.length - 1))
   const y = (v: number) => topo + (H - topo - base) * (1 - v / teto)
   const mesAtual = `${agora.getFullYear()}-${String(agora.getMonth() + 1).padStart(2, '0')}`
   const linhas = []
   for (let v = 0; v <= teto + 1e-6; v += tick) linhas.push(v)
+  const pontos = valores.map((v, i) => `${x(i)},${y(v)}`).join(' ')
+  const area = meses.length ? `M${x(0)},${y(0)} L${pontos.replaceAll(' ', ' L')} L${x(meses.length - 1)},${y(0)} Z` : ''
   return (
     <>
       <div className="scroll-x">
-        <svg viewBox={`0 0 ${W} ${H}`} width="100%" style={{ minWidth: 520 }} role="img" aria-label="Valor recebido por mês">
+        <svg className="linha-mensal" viewBox={`0 0 ${W} ${H}`} width="100%" style={{ minWidth: 520 }} role="img" aria-label="Valor recebido por mês">
           {linhas.map((v) => (
             <g key={v}>
               <line x1={esq} x2={W - 8} y1={y(v)} y2={y(v)} stroke="var(--line)" />
@@ -65,18 +70,20 @@ function GraficoMensal({ notas, agora }: { notas: Nota[]; agora: Date }) {
               </text>
             </g>
           ))}
+          <path d={area} className="area" />
+          <polyline points={pontos} className="traco" />
           {meses.map((k, i) => {
-            const x = esq + i * larg + larg * 0.18, w = larg * 0.64, v = valores[i], atual = k === mesAtual
+            const v = valores[i], atual = k === mesAtual
             return (
               <g key={k}>
-                <rect x={x} y={y(v)} width={w} height={y(0) - y(v)} rx="3" fill={atual ? 'var(--bar-2)' : 'var(--bar)'}>
+                <circle cx={x(i)} cy={y(v)} r={atual ? 5 : 4} className={atual ? 'ponto atual' : 'ponto'}>
                   <title>{`${MESES[+k.slice(5) - 1]}/${k.slice(0, 4)}: ${brl(v)}`}</title>
-                </rect>
-                <text x={x + w / 2} y={H - 8} textAnchor="middle" fontSize="12" fill="var(--fg-2)">
+                </circle>
+                <text x={x(i)} y={H - 8} textAnchor="middle" fontSize="12" fill="var(--fg-2)">
                   {MESES[+k.slice(5) - 1]}
                 </text>
                 {(v === max || atual) && (
-                  <text x={x + w / 2} y={y(v) - 6} textAnchor="middle" fontSize="11.5" fontWeight="600" fill="var(--fg)">
+                  <text x={x(i)} y={y(v) - 10} textAnchor="middle" fontSize="11.5" fontWeight="600" fill="var(--fg)">
                     {compacto(v).replace('R$ ', '')}
                   </text>
                 )}
@@ -85,14 +92,27 @@ function GraficoMensal({ notas, agora }: { notas: Nota[]; agora: Date }) {
           })}
         </svg>
       </div>
-      <p className="hint">Barra clara: mês em andamento.</p>
+      <p className="hint">Ponto vazado: mês em andamento. Passe o mouse num ponto para ver o valor.</p>
     </>
+  )
+}
+
+/** Comparação com o mês anterior, com seta e cor de bom ou ruim. */
+function Comparacao({ atual, anterior, formato, menorEhMelhor = false }: { atual: number | null; anterior: number | null; formato(v: number): string; menorEhMelhor?: boolean }) {
+  if (atual === null || anterior === null) return <span className="cmp muted">sem comparação com o mês anterior</span>
+  const dif = atual - anterior
+  if (Math.abs(dif) < 1e-9) return <span className="cmp muted">igual ao mês anterior</span>
+  const bom = menorEhMelhor ? dif < 0 : dif > 0
+  return (
+    <span className={`cmp ${bom ? 'bom' : 'ruim'}`}>
+      {dif > 0 ? '▲' : '▼'} {formato(Math.abs(dif))} vs mês anterior
+    </span>
   )
 }
 
 /** Painel de um ambiente: só as notas da Sala VIP ou só as do Comercial. */
 export function Gestao({ origem }: { origem: Ambiente }) {
-  const { dados, agora, fornecedor } = useApp()
+  const { dados, agora, janela, fornecedor } = useApp()
   if (!dados) return null
   const notas = dados.notas.filter((n) => n.origem === origem)
   // Contratos básicos são da Sala VIP; no Comercial o controle de saldo é por pedido (aba Requisições).
@@ -139,15 +159,56 @@ export function Gestao({ origem }: { origem: Ambiente }) {
     .sort((a, b) => b.usado / b.r.valorTotal - a.usado / a.r.valorTotal)
   const emAlerta = origem === 'vip' ? saldo.filter((x) => x.situacao !== 'ok') : pedidos.filter((x) => x.situacao !== 'ok')
 
+  // "Agora": o que pede atenção hoje.
+  const vencidas = abertas.filter((n) => estaVencida(n, janela))
+  const paradas = abertas.filter((n) => diasNaEtapa(n, agora) > DIAS_PARADA)
+  const proximas = saemNoProximoPagamento(notas, janela)
+  const travando = maisParadas(notas, agora)
+
+  // Comparação do mês atual com o anterior.
+  const mes = agora.getMonth()
+  const ant = mesAnterior(ano, mes)
+  const esteMes = resumoDoMes(notas, ano, mes)
+  const mesPassado = resumoDoMes(notas, ant.ano, ant.mes)
+  const umaCasa = (v: number) => v.toLocaleString('pt-BR', { maximumFractionDigits: 1 })
+
   return (
     <>
+      <h2 className="secao-titulo">Agora</h2>
+      <div className="tiles">
+        <div className={`tile ${vencidas.length ? 'alert' : ''}`}>
+          <span className="k">Vencidas sem pagamento</span>
+          <span className="v">{vencidas.length}</span>
+          <span className="d">{vencidas.length ? brl(soma(vencidas)) : 'nenhuma'}</span>
+        </div>
+        <div className={`tile ${paradas.length ? 'attn' : ''}`}>
+          <span className="k">Paradas há mais de {DIAS_PARADA} dias</span>
+          <span className="v">{paradas.length}</span>
+          <span className="d">na mesma etapa</span>
+        </div>
+        <div className={`tile ${emAlerta.length ? 'attn' : ''}`}>
+          <span className="k">{origem === 'vip' ? 'Contratos em alerta' : 'Pedidos em alerta'}</span>
+          <span className="v">{emAlerta.length}</span>
+          <span className="d">
+            {emAlerta.filter((x) => x.situacao === 'estourado').length} estourado(s)
+          </span>
+        </div>
+        <div className="tile">
+          <span className="k">Sai na quinta {dataCurta(janela.proximoPagamento)}</span>
+          <span className="v">{compacto(soma(proximas))}</span>
+          <span className="d">{proximas.length} NFs com pagamento previsto</span>
+        </div>
+      </div>
+
+      <h2 className="secao-titulo">No ano</h2>
       <div className="tiles">
         <div className="tile">
           <span className="k">Valor recebido em {ano}</span>
           <span className="v">{compacto(soma(doAno))}</span>
           <span className="d">
-            {doAno.length} NFs · média {brl(doAno.length ? soma(doAno) / doAno.length : 0)}
+            {doAno.length} NFs · em {MESES[mes]}: {compacto(esteMes.valor)}
           </span>
+          <Comparacao atual={esteMes.valor} anterior={mesPassado.valor} formato={compacto} />
         </div>
         <div className={`tile ${pct < 85 ? 'attn' : ''}`}>
           <span className="k">Pagas no prazo</span>
@@ -155,11 +216,13 @@ export function Gestao({ origem }: { origem: Ambiente }) {
           <span className="d">
             {noPrazo.length} de {pagas.length} pagas até o vencimento
           </span>
+          <Comparacao atual={esteMes.noPrazo} anterior={mesPassado.noPrazo} formato={(v) => `${v} pontos`} />
         </div>
         <div className="tile">
           <span className="k">Ciclo médio</span>
-          <span className="v">{ciclo.toLocaleString('pt-BR', { maximumFractionDigits: 1 })} dias</span>
+          <span className="v">{umaCasa(ciclo)} dias</span>
           <span className="d">do recebimento ao pagamento</span>
+          <Comparacao atual={esteMes.ciclo} anterior={mesPassado.ciclo} formato={(v) => `${umaCasa(v)} dias`} menorEhMelhor />
         </div>
         <div className="tile">
           <span className="k">Em aberto</span>
@@ -168,7 +231,7 @@ export function Gestao({ origem }: { origem: Ambiente }) {
         </div>
       </div>
       <div className="charts">
-        <div className="panel wide">
+        <div className="panel">
           <header>
             <div>
               <h2>Valor recebido por mês</h2>
@@ -176,6 +239,29 @@ export function Gestao({ origem }: { origem: Ambiente }) {
             </div>
           </header>
           <GraficoMensal notas={notas} agora={agora} />
+        </div>
+        <div className="panel">
+          <header>
+            <div>
+              <h2>O que está travando</h2>
+              <p className="sub">Notas em aberto paradas há mais tempo na mesma etapa.</p>
+            </div>
+          </header>
+          {travando.length === 0 ? (
+            <p className="muted">Nenhuma nota em aberto.</p>
+          ) : (
+            <div className="travando">
+              {travando.map((n) => (
+                <div key={n.id}>
+                  <StatusNota nota={n} />
+                  <span className="t">
+                    {fornecedor(n.fornecedorId)?.nome ?? '—'} <span className="muted mono">NF {n.numero}</span>
+                  </span>
+                  <TempoParada nota={n} agora={agora} />
+                </div>
+              ))}
+            </div>
+          )}
         </div>
         <div className="panel">
           <header>
