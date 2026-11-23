@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { calcularJanela, diasAteJanela, ehUrgente, janelaDaNota, pagamentoNoOuAntes, pagamentoNoOuApos, quintaNoOuApos } from './regras'
+import { avisoDeDatas, calcularJanela, diasDoMes, diasAteJanela, ehUrgente, janelaDaNota, pagamentoNoOuAntes, pagamentoNoOuApos, quintaNoOuApos } from './regras'
 import type { EtapaId, Nota } from './tipos'
 
 const d = (s: string) => new Date(s + 'T12:00:00')
@@ -70,5 +70,21 @@ describe('prioridade: 15 dias antes da janela de pagamento', () => {
     expect(ehUrgente(nota('2026-11-10'), pertoDaJanela)).toBe(true)
     expect(ehUrgente(nota('2026-11-10', 'chamado'), pertoDaJanela)).toBe(false)
     expect(ehUrgente(nota('2026-11-10', 'paga'), pertoDaJanela)).toBe(false)
+  })
+})
+
+describe('datas do mês', () => {
+  it('marca todas as quintas como chamado e só as do dia 1 ao 21 como pagamento', () => {
+    const nov = diasDoMes(2026, 10)
+    expect(nov).toHaveLength(30)
+    expect(nov.filter((x) => x.chamado).map((x) => x.dia.getDate())).toEqual([5, 12, 19, 26])
+    expect(nov.filter((x) => x.pagamento).map((x) => x.dia.getDate())).toEqual([5, 12, 19])
+  })
+
+  it('avisa só na véspera e no dia da quinta', () => {
+    expect(avisoDeDatas(d('2026-11-23'))).toBeUndefined() // segunda
+    expect(avisoDeDatas(d('2026-11-25'))).toBe('Amanhã tem abertura de chamados') // quarta, 26 não tem pagamento
+    expect(avisoDeDatas(d('2026-11-26'))).toBe('Hoje tem abertura de chamados')
+    expect(avisoDeDatas(d('2026-12-02'))).toBe('Amanhã tem abertura de chamados e pagamento')
   })
 })

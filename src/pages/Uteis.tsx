@@ -1,6 +1,6 @@
 // Aba Úteis: consulta rápida de cada ambiente (centros de custo, códigos,
 // fornecedores, orientações), no lugar da aba "Úteis" da planilha.
-// Clicar num código copia ele. Quem pode, adiciona e edita as linhas.
+// Cada código tem botão de copiar; as orientações abrem e fecham como perguntas. Quem pode, adiciona e edita as linhas.
 
 import { useState, type FormEvent } from 'react'
 import { podeEditarUteis } from '../domain/acesso'
@@ -9,23 +9,39 @@ import type { Ambiente, Fornecedor, Util } from '../domain/tipos'
 import { brl } from '../lib/formato'
 import { mensagemDeErro, useApp } from '../estado'
 
+/** Código com botão de copiar à vista. Depois de copiar, fica verde por um instante com "copiado". */
 function Copiavel({ texto, mono = true }: { texto: string; mono?: boolean }) {
   const { avisar } = useApp()
+  const [copiado, setCopiado] = useState(false)
   if (!texto) return <span className="muted">—</span>
   return (
     <button
       type="button"
-      className={`copiavel ${mono ? 'mono' : ''}`}
-      title="Clique para copiar"
+      className={`copiavel ${mono ? 'mono' : ''} ${copiado ? 'ok' : ''}`}
+      title="Copiar"
+      aria-label={`Copiar ${texto}`}
       onClick={(e) => {
         e.stopPropagation()
         navigator.clipboard
           .writeText(texto)
-          .then(() => avisar(`Copiado: ${texto}`))
+          .then(() => {
+            setCopiado(true)
+            setTimeout(() => setCopiado(false), 1500)
+          })
           .catch(() => avisar('Não foi possível copiar'))
       }}
     >
-      {texto}
+      <span>{copiado ? 'copiado' : texto}</span>
+      <svg viewBox="0 0 24 24" aria-hidden="true">
+        {copiado ? (
+          <path d="M20 6 9 17l-5-5" />
+        ) : (
+          <>
+            <rect x="8" y="8" width="12" height="12" rx="2" />
+            <path d="M16 8V6a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h2" />
+          </>
+        )}
+      </svg>
     </button>
   )
 }
@@ -115,12 +131,17 @@ function Secao({ secao, linhas, ambiente, editavel }: { secao: DefSecao; linhas:
       {linhas.length === 0 ? (
         <p className="muted">Nada aqui ainda.</p>
       ) : secao.texto ? (
-        <div className="orientacoes">
+        <div className="perguntas">
           {linhas.map((l) => (
-            <article key={l.id} onClick={() => editavel && setEditando(l)} className={editavel ? 'editavel' : ''}>
-              <h3>{l.titulo}</h3>
+            <details key={l.id} open={linhas.length === 1 || undefined}>
+              <summary>{l.titulo}</summary>
               <p>{l.valor}</p>
-            </article>
+              {editavel && (
+                <button className="link small" type="button" onClick={() => setEditando(l)}>
+                  Editar
+                </button>
+              )}
+            </details>
           ))}
         </div>
       ) : (
@@ -170,16 +191,26 @@ export function Uteis({ ambiente }: { ambiente: Ambiente }) {
   const contratos =
     ambiente === 'vip' ? dados.contratos.filter((c) => c.ativo && bate(c.numero, dados.fornecedores.find((f) => f.id === c.fornecedorId)?.nome ?? '')) : []
 
+  const linhasDa = (id: string) =>
+    dados.uteis.filter((u) => u.ambiente === ambiente && u.secao === id && bate(u.titulo, u.valor, u.obs))
+  const totalAchado = SECOES[ambiente].reduce((t, s) => t + linhasDa(s.id).length, 0) + fornecedores.length + contratos.length
+
   return (
     <>
       <div className="toolbar">
-        <input type="search" placeholder="Buscar centro de custo, código, fornecedor…" value={busca} onChange={(e) => setBusca(e.target.value)} />
-        <span className="spacer" />
-        <span className="hint">Clique num código para copiar.</span>
+        <input
+          type="search"
+          className="busca-tudo"
+          placeholder="Buscar em tudo: centro de custo, código, fornecedor, orientação…"
+          aria-label="Buscar em Úteis"
+          value={busca}
+          onChange={(e) => setBusca(e.target.value)}
+        />
+        {q && <span className="muted small">{totalAchado === 0 ? 'Nada encontrado.' : `${totalAchado} resultado(s)`}</span>}
       </div>
       <div className="uteis">
         {SECOES[ambiente].map((s) => {
-          const linhas = dados.uteis.filter((u) => u.ambiente === ambiente && u.secao === s.id && bate(u.titulo, u.valor, u.obs))
+          const linhas = linhasDa(s.id)
           if (q && !linhas.length) return null
           return <Secao key={s.id} secao={s} linhas={linhas} ambiente={ambiente} editavel={editavel} />
         })}

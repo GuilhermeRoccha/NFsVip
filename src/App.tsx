@@ -1,6 +1,6 @@
 import { BotaoAjuda } from './components/Ajuda'
+import { BotaoDatas } from './components/BotaoDatas'
 import { BotaoTema } from './components/BotaoTema'
-import { FaixaJanela } from './components/FaixaJanela'
 import { Login } from './components/Login'
 import { MODO_DEMONSTRACAO } from './data'
 import { abasDoPerfil, ambientesDoPerfil, NOME_DO_AMBIENTE } from './domain/acesso'
@@ -39,6 +39,7 @@ export default function App() {
             </nav>
           )}
           <div className="icones">
+            <BotaoDatas />
             <BotaoAjuda />
             <BotaoTema />
             {usuario && (
@@ -66,7 +67,6 @@ export default function App() {
           </div>
         )}
       </header>
-      <FaixaJanela />
 
       <main className="wrap">
         {!dados ? (
